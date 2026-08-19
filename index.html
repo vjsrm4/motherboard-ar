@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Motherboard AR Scanner</title>
+
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+<style>
+  :root {
+    --bg: #0a0e14;
+    --panel: #10161f;
+    --accent: #39d6c8;   /* circuit-trace cyan */
+    --accent-dim: #1a5c56;
+    --text: #e8f1ef;
+    --text-dim: #7c8b93;
+    --warn: #ffb454;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  #loading-screen {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 999;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px;
+    color: var(--text);
+  }
+  #loading-screen .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--accent-dim);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading-screen .hint { color: var(--text-dim); font-size: 13px; text-align: center; padding: 0 24px; }
+
+  /* top bar */
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px;
+    background: linear-gradient(180deg, rgba(10,14,20,0.85), transparent);
+    pointer-events: none;
+  }
+  #topbar .title { color: var(--text); font-weight: 600; font-size: 15px; letter-spacing: 0.3px; }
+  #topbar .title span { color: var(--accent); }
+  #status-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--warn); margin-right: 8px;
+    box-shadow: 0 0 8px var(--warn);
+  }
+  #status-dot.found { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  #status-text { color: var(--text-dim); font-size: 12px; }
+
+  /* bottom info panel */
+  #info-panel {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    z-index: 60;
+    background: var(--panel);
+    border-top: 1px solid var(--accent-dim);
+    padding: 18px 20px calc(18px + env(safe-area-inset-bottom));
+    transform: translateY(100%);
+    transition: transform 0.28s ease;
+    max-height: 42vh;
+    overflow-y: auto;
+  }
+  #info-panel.open { transform: translateY(0); }
+  #info-panel .comp-name { color: var(--accent); font-size: 17px; font-weight: 700; margin-bottom: 6px; letter-spacing: 0.2px; }
+  #info-panel .comp-desc { color: var(--text); font-size: 14px; line-height: 1.5; }
+  #info-panel .close-btn {
+    position: absolute; top: 12px; right: 14px;
+    color: var(--text-dim); font-size: 20px; background: none; border: none;
+    cursor: pointer; line-height: 1;
+  }
+
+  #hint-banner {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    z-index: 55;
+    background: rgba(16,22,31,0.9);
+    border: 1px solid var(--accent-dim);
+    color: var(--text-dim);
+    font-size: 12px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  a-scene { width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <div>Loading AR engine…</div>
+  <div class="hint">Camera permission kekkum, allow pannunga da</div>
+</div>
+
+<div id="topbar">
+  <div class="title">Motherboard<span>AR</span></div>
+  <div><span id="status-dot"></span><span id="status-text">Searching…</span></div>
+</div>
+
+<div id="hint-banner">Motherboard ah frame la niraya vachu camera ah nikkanum</div>
+
+<div id="info-panel">
+  <button class="close-btn" onclick="closeInfoPanel()">✕</button>
+  <div class="comp-name" id="panel-name">—</div>
+  <div class="comp-desc" id="panel-desc">—</div>
+</div>
+
+<a-scene
+  mindar-image="imageTargetSrc: ./assets/targets/targets.mind; autoStart: true; uiScanning: no; uiLoading: no;"
+  color-space="sRGB"
+  renderer="colorManagement: true, physicallyCorrectLights: true"
+  vr-mode-ui="enabled: false"
+  device-orientation-permission-ui="enabled: false"
+>
+  <a-assets></a-assets>
+
+  <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="near: 0.01; far: 20; objects: .clickable"></a-camera>
+
+  <a-entity id="target-0" mindar-image-target="targetIndex: 0">
+
+    <!--
+      COORDINATE SYSTEM:
+      Target plane center = (0,0,0). Plane width = 1 unit.
+      Plane height = (image height / image width) units.
+      x: left(-) to right(+) across the board
+      y: bottom(-) to top(+) across the board
+      z: small positive value lifts the box off the board surface (toward camera)
+
+      Ivlo default numbers are PLACEHOLDERS. Un board photo vechu
+      test pannitu, ovvoru box oda position="x y z" value ah
+      adjust pannunga (README.md la iterate pannura process irukku).
+    -->
+
+    <!-- CPU Socket -->
+    <a-box class="clickable" data-name="CPU Socket"
+      data-desc="AMD AM5 socket. CPU inga install pannanum. ZIF lever ah release panni CPU pin1 (gold triangle) ah socket oda pin1 marker ku match panni vekkanum."
+      position="-0.05 0.10 0.02" width="0.10" height="0.10" depth="0.005"
+      color="#39d6c8" opacity="0.35" material="shader: flat"
+      animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+    </a-box>
+
+    <!-- RAM Slots -->
+    <a-box class="clickable" data-name="RAM Slots (DIMM)"
+      data-desc="DDR5 DIMM slots, 4 units. Dual-channel ku A2 & B2 slots la first ah RAM potanum (motherboard manual check pannunga exact slot order ku)."
+      position="0.12 0.10 0.02" width="0.06" height="0.14" depth="0.005"
+      color="#ffb454" opacity="0.35" material="shader: flat"
+      animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+    </a-box>
+
+    <!-- Chipset -->
+    <a-box class="clickable" data-name="Chipset"
+      data-desc="Motherboard chipset — CPU, RAM, storage, USB, PCIe lanes ku idhan traffic controller. Idhu mela heatsink irukum, avlo heat varum."
+      position="-0.02 -0.05 0.02" width="0.08" height="0.08" depth="0.005"
+      color="#c084fc" opacity="0.35" material="shader: flat"
+      animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+    </a-box>
+
+    <!-- PCIe Slot -->
+    <a-box class="clickable" data-name="PCIe x16 Slot"
+      data-desc="Graphics card (GPU) ku main slot. PCIe Gen4/Gen5 support pannum board porthu. Click aana lever irukum GPU ah lock pannaradhuku."
+      position="-0.10 -0.15 0.02" width="0.20" height="0.02" depth="0.005"
+      color="#39d6c8" opacity="0.35" material="shader: flat"
+      animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+    </a-box>
+
+    <!-- 24-pin ATX Power -->
+    <a-box class="clickable" data-name="24-Pin ATX Power"
+      data-desc="Main power connector — PSU la irundhu motherboard ku power varradhu. Idhu illama system boot aagathu."
+      position="0.18 -0.02 0.02" width="0.03" height="0.10" depth="0.005"
+      color="#ffb454" opacity="0.35" material="shader: flat"
+      animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+    </a-box>
+
+    <!-- CMOS Battery -->
+    <a-box class="clickable" data-name="CMOS Battery"
+      data-desc="CR2032 coin cell. BIOS settings + system clock ah power off panna store pannradhukku. Idhu drain aana BIOS reset aagum."
+      position="0.05 -0.08 0.02" width="0.02" height="0.02" depth="0.005"
+      color="#c084fc" opacity="0.35" material="shader: flat"
+      animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+    </a-box>
+
+  </a-entity>
+</a-scene>
+
+<script>
+  const sceneEl = document.querySelector('a-scene');
+  const targetEl = document.querySelector('#target-0');
+  const statusDot = document.getElementById('status-dot');
+  const statusText = document.getElementById('status-text');
+  const loadingScreen = document.getElementById('loading-screen');
+  const hintBanner = document.getElementById('hint-banner');
+  const infoPanel = document.getElementById('info-panel');
+  const panelName = document.getElementById('panel-name');
+  const panelDesc = document.getElementById('panel-desc');
+
+  sceneEl.addEventListener('renderstart', () => {
+    loadingScreen.style.display = 'none';
+  });
+
+  targetEl.addEventListener('targetFound', () => {
+    statusDot.classList.add('found');
+    statusText.textContent = 'Board detected';
+    hintBanner.style.opacity = '0';
+  });
+
+  targetEl.addEventListener('targetLost', () => {
+    statusDot.classList.remove('found');
+    statusText.textContent = 'Searching…';
+    hintBanner.style.opacity = '1';
+    closeInfoPanel();
+  });
+
+  // click handling for each highlight box
+  document.querySelectorAll('.clickable').forEach((el) => {
+    el.addEventListener('click', () => {
+      panelName.textContent = el.dataset.name;
+      panelDesc.textContent = el.dataset.desc;
+      infoPanel.classList.add('open');
+    });
+  });
+
+  function closeInfoPanel() {
+    infoPanel.classList.remove('open');
+  }
+</script>
+
+</body>
+</html>
