@@ -363,7 +363,7 @@
              device-orientation-permission-ui="enabled: false">
         <a-assets></a-assets>
 
-        <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="near: 0.01; far: 20; objects: .clickable"></a-camera>
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity id="target-0" mindar-image-target="targetIndex: 0">
 
@@ -379,12 +379,6 @@
               test pannitu, ovvoru box oda position="x y z" value ah
               adjust pannunga (README.md la iterate pannura process irukku).
             -->
-            <!-- CALIBRATION PLANE: tap anywhere on empty board area to read out
-                 x,y coords for that spot in the readout bar at the bottom.
-                 Use those numbers to position the boxes below. -->
-            <a-plane class="clickable" data-calib="true" position="0 0 0.001" width="2" height="2"
-                     material="opacity: 0; transparent: true; side: double"></a-plane>
-
             <!-- Processor / CPU Socket -->
             <a-box class="clickable" data-name="Processor / CPU Socket"
                    data-desc="AMD AM5 socket. CPU inga install pannanum. ZIF lever ah release panni CPU pin1 (gold triangle) ah socket oda pin1 marker ku match panni vekkanum."
@@ -519,22 +513,63 @@
             closeInfoPanel();
         });
 
-        // click handling: calibration plane shows coords, component boxes show info panel
-        document.querySelectorAll('.clickable').forEach((el) => {
-            el.addEventListener('click', (evt) => {
-                if (el.dataset.calib === 'true') {
-                    const point = evt.detail.intersection.point.clone();
-                    targetEl.object3D.worldToLocal(point);
-                    calibReadout.textContent = `x="${point.x.toFixed(3)}" y="${point.y.toFixed(3)}"`;
-                    calibReadout.classList.add('show');
+        // click handling: manual Three.js raycasting (more reliable on mobile than
+        // A-Frame's built-in cursor system). Tapping a box shows its info panel;
+        // tapping empty board area shows calibration coordinates.
+        let threeCamera = null;
+        let canvasEl = null;
+        const boxEntities = Array.from(document.querySelectorAll('#target-0 > a-box.clickable'));
+
+        sceneEl.addEventListener('loaded', () => {
+            threeCamera = sceneEl.camera;
+            canvasEl = sceneEl.canvas;
+            canvasEl.addEventListener('click', handleTap);
+        });
+
+        function handleTap(event) {
+            if (!threeCamera || !canvasEl) return;
+            const THREE = AFRAME.THREE;
+            const rect = canvasEl.getBoundingClientRect();
+            const ndcX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            const ndcY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera({ x: ndcX, y: ndcY }, threeCamera);
+
+            // 1) check if a component box was tapped
+            const boxObjects = boxEntities.map((el) => el.object3D);
+            const hits = raycaster.intersectObjects(boxObjects, true);
+            if (hits.length > 0) {
+                const hitMesh = hits[0].object;
+                const owner = boxEntities.find((el) => {
+                    let found = false;
+                    el.object3D.traverse((child) => { if (child === hitMesh) found = true; });
+                    return found;
+                });
+                if (owner) {
+                    panelName.textContent = owner.dataset.name;
+                    panelDesc.textContent = owner.dataset.desc;
+                    renderSpecs(panelSpecs, owner.dataset.specs);
+                    infoPanel.classList.add('open');
                     return;
                 }
-                panelName.textContent = el.dataset.name;
-                panelDesc.textContent = el.dataset.desc;
-                renderSpecs(panelSpecs, el.dataset.specs);
-                infoPanel.classList.add('open');
-            });
-        });
+            }
+
+            // 2) otherwise treat as calibration tap — intersect the target's flat plane
+            const targetObj = targetEl.object3D;
+            const normalMatrix = new THREE.Matrix3().getNormalMatrix(targetObj.matrixWorld);
+            const worldNormal = new THREE.Vector3(0, 0, 1).applyMatrix3(normalMatrix).normalize();
+            const worldOrigin = new THREE.Vector3(0, 0, 0).applyMatrix4(targetObj.matrixWorld);
+            const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(worldNormal, worldOrigin);
+            const intersectPoint = new THREE.Vector3();
+            const didHit = raycaster.ray.intersectPlane(plane, intersectPoint);
+            if (didHit) {
+                const localPoint = intersectPoint.clone();
+                targetObj.worldToLocal(localPoint);
+                calibReadout.textContent = `x="${localPoint.x.toFixed(3)}" y="${localPoint.y.toFixed(3)}"`;
+                calibReadout.classList.add('show');
+            }
+        }
 
         function closeInfoPanel() {
             infoPanel.classList.remove('open');
