@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Board Calibration Tool</title>
+<style>
+  :root {
+    --bg: #0a0e14; --panel: #10161f; --accent: #39d6c8; --accent-dim: #1a5c56;
+    --text: #e8f1ef; --text-dim: #7c8b93;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px;
+    background: var(--bg); color: var(--text);
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+  }
+  h2 { color: var(--accent); font-size: 18px; margin: 0 0 4px; }
+  p.hint { color: var(--text-dim); font-size: 13px; margin: 0 0 16px; }
+  #wrap {
+    position: relative; display: inline-block; max-width: 100%;
+    border: 1px solid var(--accent-dim); border-radius: 8px; overflow: hidden;
+  }
+  #board-img { display: block; max-width: 100%; height: auto; cursor: crosshair; }
+  .marker {
+    position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px;
+    border: 2px solid var(--accent); border-radius: 50%;
+    background: rgba(57,214,200,0.3); pointer-events: none;
+  }
+  #controls {
+    margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  }
+  #comp-label {
+    flex: 1; min-width: 180px;
+    background: var(--panel); border: 1px solid var(--accent-dim); color: var(--text);
+    padding: 9px 12px; border-radius: 6px; font-size: 14px;
+  }
+  button {
+    background: var(--accent); color: #06231f; border: none;
+    padding: 9px 16px; border-radius: 6px; font-weight: 700;
+    font-size: 14px; cursor: pointer;
+  }
+  button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent-dim); }
+  #readout {
+    margin-top: 12px; padding: 12px 14px;
+    background: var(--panel); border: 1px solid var(--accent-dim); border-radius: 8px;
+    font-family: 'Consolas', monospace; font-size: 13px; color: var(--accent);
+  }
+  #list-wrap { margin-top: 16px; }
+  #list-wrap h3 { color: var(--text-dim); font-size: 13px; margin: 0 0 8px; font-weight: 600; }
+  #point-list {
+    width: 100%; min-height: 140px;
+    background: var(--panel); border: 1px solid var(--accent-dim); color: var(--text);
+    font-family: 'Consolas', monospace; font-size: 12px; padding: 12px; border-radius: 8px;
+    white-space: pre; overflow: auto;
+  }
+</style>
+</head>
+<body>
+
+<h2>Board Calibration Tool</h2>
+<p class="hint">
+  Board photo ah keezha click pannunga → x,y coordinates kedaikும். Component name type panni "Add to list"
+  click pannunga → adha ready-to-paste position value list la add aagum. Ella component ku mudinjadhum,
+  list ah copy panni <b>index.html</b> la ovvoru box oda <code>position="..."</code> ku paste pannunga.
+</p>
+
+<div id="wrap">
+  <img id="board-img" src="assets/targets/board-photo.jpg" alt="Motherboard" />
+</div>
+
+<div id="readout">Click on the board to see coordinates here</div>
+
+<div id="controls">
+  <input type="text" id="comp-label" placeholder="Component name (e.g. CPU Socket)" />
+  <button id="add-btn">Add to list</button>
+  <button class="secondary" id="clear-btn">Clear list</button>
+</div>
+
+<div id="list-wrap">
+  <h3>Collected points (copy the position value into index.html)</h3>
+  <textarea id="point-list" readonly></textarea>
+</div>
+
+<script>
+  const img = document.getElementById('board-img');
+  const wrap = document.getElementById('wrap');
+  const readout = document.getElementById('readout');
+  const compLabel = document.getElementById('comp-label');
+  const pointList = document.getElementById('point-list');
+  const addBtn = document.getElementById('add-btn');
+  const clearBtn = document.getElementById('clear-btn');
+
+  let lastCoords = null;
+
+  img.addEventListener('click', (e) => {
+    const rect = img.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    // scale from displayed size to natural (original) pixel size
+    const scaleX = img.naturalWidth / rect.width;
+    const scaleY = img.naturalHeight / rect.height;
+    const pixelX = clickX * scaleX;
+    const pixelY = clickY * scaleY;
+
+    // convert to AR local coords:
+    // plane width = 1 unit = img.naturalWidth pixels, height scales proportionally
+    const x = (pixelX - img.naturalWidth / 2) / img.naturalWidth;
+    const y = (img.naturalHeight / 2 - pixelY) / img.naturalWidth;
+
+    lastCoords = { x, y };
+    readout.textContent = `x="${x.toFixed(3)}" y="${y.toFixed(3)}"  →  position="${x.toFixed(3)} ${y.toFixed(3)} 0.02"`;
+
+    // visual marker
+    document.querySelectorAll('.marker').forEach((m) => m.remove());
+    const marker = document.createElement('div');
+    marker.className = 'marker';
+    marker.style.left = clickX + 'px';
+    marker.style.top = clickY + 'px';
+    wrap.appendChild(marker);
+  });
+
+  addBtn.addEventListener('click', () => {
+    if (!lastCoords) {
+      alert('Board mela oru spot ah click pannunga mudhalla!');
+      return;
+    }
+    const label = compLabel.value.trim() || 'Component';
+    const line = `${label}: position="${lastCoords.x.toFixed(3)} ${lastCoords.y.toFixed(3)} 0.02"\n`;
+    pointList.value += line;
+    compLabel.value = '';
+    compLabel.focus();
+  });
+
+  clearBtn.addEventListener('click', () => {
+    pointList.value = '';
+  });
+</script>
+
+</body>
+</html>

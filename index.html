@@ -383,18 +383,22 @@
             <a-box class="clickable" data-name="Processor / CPU Socket"
                    data-desc="AMD AM5 socket. CPU inga install pannanum. ZIF lever ah release panni CPU pin1 (gold triangle) ah socket oda pin1 marker ku match panni vekkanum."
                    data-specs="Socket:AM5|Pin Count:1718|Supports:Ryzen 7000/8000/9000|Max TDP:170W"
-                   position="-0.071 0.113 0.02" width="0.10" height="0.10" depth="0.005"
+                   position="-0.05 0.10 0.02" width="0.10" height="0.10" depth="0.005"
                    color="#39d6c8" opacity="0.35" material="shader: flat"
                    animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+                <a-plane position="0 0.07 0.01" width="0.09" height="0.025" color="#06231f" opacity="0.75" material="shader: flat"></a-plane>
+                <a-text value="CPU" align="center" color="#39d6c8" width="0.5" position="0 0.07 0.012"></a-text>
             </a-box>
 
             <!-- RAM Slots -->
             <a-box class="clickable" data-name="RAM Slots (DIMM)"
                    data-desc="DDR5 DIMM slots, 4 units. Dual-channel ku A2 & B2 slots la first ah RAM potanum (motherboard manual check pannunga exact slot order ku)."
                    data-specs="Type:DDR5|Slots:4|Max Capacity:192GB|Max Speed:6400MHz (OC)|Channel:Dual"
-                   position="0.072 0.140 0.02" width="0.06" height="0.14" depth="0.005"
+                   position="0.12 0.10 0.02" width="0.06" height="0.14" depth="0.005"
                    color="#ffb454" opacity="0.35" material="shader: flat"
                    animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+                <a-plane position="0 0.09 0.01" width="0.09" height="0.025" color="#2b2005" opacity="0.75" material="shader: flat"></a-plane>
+                <a-text value="RAM" align="center" color="#ffb454" width="0.5" position="0 0.09 0.012"></a-text>
             </a-box>
 
             <!-- Chipset -->
@@ -404,24 +408,30 @@
                    position="-0.02 -0.05 0.02" width="0.08" height="0.08" depth="0.005"
                    color="#c084fc" opacity="0.35" material="shader: flat"
                    animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+                <a-plane position="0 0.06 0.01" width="0.11" height="0.025" color="#1f0a2b" opacity="0.75" material="shader: flat"></a-plane>
+                <a-text value="Chipset" align="center" color="#c084fc" width="0.5" position="0 0.06 0.012"></a-text>
             </a-box>
 
             <!-- PCIe Slot -->
             <a-box class="clickable" data-name="PCIe x16 Slot"
                    data-desc="Graphics card (GPU) ku main slot. PCIe Gen4/Gen5 support pannum board porthu. Click aana lever irukum GPU ah lock pannaradhuku."
                    data-specs="Version:PCIe 5.0|Lane Width:x16|Slots Available:1"
-                   position="0.441 0.084 0.02" width="0.20" height="0.02" depth="0.005"
+                   position="-0.10 -0.15 0.02" width="0.20" height="0.02" depth="0.005"
                    color="#39d6c8" opacity="0.35" material="shader: flat"
                    animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+                <a-plane position="0 0.03 0.01" width="0.12" height="0.02" color="#06231f" opacity="0.75" material="shader: flat"></a-plane>
+                <a-text value="PCIe x16" align="center" color="#39d6c8" width="0.4" position="0 0.03 0.012"></a-text>
             </a-box>
 
             <!-- PCIe x1 Slot -->
             <a-box class="clickable" data-name="PCIe x1 Slot"
                    data-desc="Chinna PCIe slot — sound cards, WiFi cards, capture cards madhiri chinna expansion cards ku use pannuvanga."
                    data-specs="Version:PCIe 3.0|Lane Width:x1|Use:WiFi/Sound/Capture cards"
-                   position="0.315 0.207 0.02" width="0.06" height="0.015" depth="0.005"
+                   position="-0.10 -0.20 0.02" width="0.06" height="0.015" depth="0.005"
                    color="#39d6c8" opacity="0.35" material="shader: flat"
                    animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+                <a-plane position="0 0.025 0.01" width="0.1" height="0.02" color="#06231f" opacity="0.75" material="shader: flat"></a-plane>
+                <a-text value="PCIe x1" align="center" color="#39d6c8" width="0.4" position="0 0.025 0.012"></a-text>
             </a-box>
 
             <!-- 24-pin ATX Power -->
@@ -431,33 +441,41 @@
                    position="0.18 -0.02 0.02" width="0.03" height="0.10" depth="0.005"
                    color="#ffb454" opacity="0.35" material="shader: flat"
                    animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+                <a-plane position="0 0.07 0.01" width="0.13" height="0.022" color="#2b2005" opacity="0.75" material="shader: flat"></a-plane>
+                <a-text value="24-Pin PWR" align="center" color="#ffb454" width="0.4" position="0 0.07 0.012"></a-text>
             </a-box>
 
             <!-- CPU Power Connector -->
             <a-box class="clickable" data-name="CPU Power Connector"
                    data-desc="4+4 pin (illa 8-pin) EPS connector — CPU ku dedicated ah power kudukum, 24-pin connector vera idhu vera."
                    data-specs="Connector:4+4 Pin EPS|Voltage:+12V|Function:Dedicated CPU power"
-                   position="0.040 0.457 0.02" width="0.025" height="0.05" depth="0.005"
+                   position="0.15 0.15 0.02" width="0.025" height="0.05" depth="0.005"
                    color="#ffb454" opacity="0.35" material="shader: flat"
                    animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+                <a-plane position="0 0.045 0.01" width="0.11" height="0.022" color="#2b2005" opacity="0.75" material="shader: flat"></a-plane>
+                <a-text value="CPU PWR" align="center" color="#ffb454" width="0.4" position="0 0.045 0.012"></a-text>
             </a-box>
 
             <!-- SATA Ports -->
             <a-box class="clickable" data-name="SATA Ports"
                    data-desc="Hard disk, SSD, DVD drive connect panna use pannuvanga. L-shape connectors, usually board edge la irukum."
                    data-specs="Version:SATA III|Speed:6Gbps|Ports:4-6 (EDIT to your board)|Use:HDD/SSD/Optical drives"
-                   position="0.432 0.357 0.02" width="0.08" height="0.02" depth="0.005"
+                   position="0.10 -0.22 0.02" width="0.08" height="0.02" depth="0.005"
                    color="#c084fc" opacity="0.35" material="shader: flat"
                    animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+                <a-plane position="0 0.03 0.01" width="0.09" height="0.02" color="#1f0a2b" opacity="0.75" material="shader: flat"></a-plane>
+                <a-text value="SATA" align="center" color="#c084fc" width="0.4" position="0 0.03 0.012"></a-text>
             </a-box>
 
             <!-- CMOS Battery -->
             <a-box class="clickable" data-name="CMOS Battery"
                    data-desc="CR2032 coin cell. BIOS settings + system clock ah power off panna store pannradhukku. Idhu drain aana BIOS reset aagum."
                    data-specs="Type:CR2032|Voltage:3V|Function:BIOS/RTC backup"
-                   position="0.235 0.527 0.02" width="0.02" height="0.02" depth="0.005"
+                   position="0.05 -0.08 0.02" width="0.02" height="0.02" depth="0.005"
                    color="#c084fc" opacity="0.35" material="shader: flat"
                    animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+                <a-plane position="0 0.03 0.01" width="0.09" height="0.02" color="#1f0a2b" opacity="0.75" material="shader: flat"></a-plane>
+                <a-text value="CMOS" align="center" color="#c084fc" width="0.4" position="0 0.03 0.012"></a-text>
             </a-box>
 
         </a-entity>
