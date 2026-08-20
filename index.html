@@ -7,6 +7,37 @@
 
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script>
+        // Registered here (before <a-scene> is parsed) so it's ready when
+        // the target-0 entity attaches it. Freezes the tracked entity's
+        // transform + visibility once locked, overriding MindAR's per-frame
+        // tracking updates (runs after mindar-image-target's tick since it
+        // is attached second on the entity).
+        AFRAME.registerComponent('lock-override', {
+            init: function () {
+                this.locked = false;
+                this.frozenMatrix = new AFRAME.THREE.Matrix4();
+            },
+            lock: function () {
+                this.el.object3D.updateMatrixWorld(true);
+                this.frozenMatrix.copy(this.el.object3D.matrix);
+                this.locked = true;
+            },
+            unlock: function () {
+                this.locked = false;
+            },
+            tick: function () {
+                if (!this.locked) return;
+                this.el.object3D.matrix.copy(this.frozenMatrix);
+                this.el.object3D.matrix.decompose(
+                    this.el.object3D.position,
+                    this.el.object3D.quaternion,
+                    this.el.object3D.scale
+                );
+                this.el.object3D.visible = true;
+            }
+        });
+    </script>
 
     <style>
         :root {
@@ -135,6 +166,52 @@
             justify-content: center;
             cursor: pointer;
         }
+
+        #lock-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(57,214,200,0.12);
+            border: 1px solid var(--accent-dim);
+            color: var(--accent);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+            #lock-btn.active {
+                background: var(--accent);
+                color: #06231f;
+                box-shadow: 0 0 10px rgba(57,214,200,0.6);
+            }
+
+            #lock-btn:disabled {
+                opacity: 0.35;
+                cursor: not-allowed;
+            }
+
+        #lock-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            height: 28px;
+            padding: 0 12px;
+            border-radius: 14px;
+            background: rgba(57,214,200,0.12);
+            border: 1px solid var(--accent-dim);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+            #lock-btn.locked {
+                background: var(--accent);
+                color: #06231f;
+                border-color: var(--accent);
+            }
 
         /* board overview modal */
         #overview-backdrop {
@@ -324,6 +401,7 @@
         <div class="title">Motherboard<span>AR</span></div>
         <div class="topbar-right">
             <span id="status-dot"></span><span id="status-text">Searching…</span>
+            <button id="lock-btn" onclick="toggleLock()" aria-label="Lock position" disabled>🔓</button>
             <button id="info-btn" onclick="toggleOverview()" aria-label="Board overview">i</button>
         </div>
     </div>
@@ -365,7 +443,7 @@
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <a-entity id="target-0" mindar-image-target="targetIndex: 0">
+        <a-entity id="target-0" mindar-image-target="targetIndex: 0" lock-override>
 
             <!--
               COORDINATE SYSTEM:
@@ -495,6 +573,28 @@
         const overviewPanel = document.getElementById('overview-panel');
         const overviewBackdrop = document.getElementById('overview-backdrop');
         const calibReadout = document.getElementById('calib-readout');
+        const lockBtn = document.getElementById('lock-btn');
+
+        let hasBeenFound = false;
+        let isLocked = false;
+
+        function toggleLock() {
+            const comp = targetEl.components['lock-override'];
+            if (!comp) return;
+            if (!isLocked) {
+                comp.lock();
+                isLocked = true;
+                lockBtn.textContent = '🔒';
+                lockBtn.classList.add('active');
+                statusText.textContent = 'Locked (fixed)';
+            } else {
+                comp.unlock();
+                isLocked = false;
+                lockBtn.textContent = '🔓';
+                lockBtn.classList.remove('active');
+                statusText.textContent = statusDot.classList.contains('found') ? 'Board detected' : 'Searching…';
+            }
+        }
 
         function toggleOverview() {
             overviewPanel.classList.toggle('open');
@@ -520,12 +620,20 @@
 
         targetEl.addEventListener('targetFound', () => {
             statusDot.classList.add('found');
-            statusText.textContent = 'Board detected';
+            statusText.textContent = isLocked ? 'Locked (fixed)' : 'Board detected';
             hintBanner.style.opacity = '0';
+            if (!hasBeenFound) {
+                hasBeenFound = true;
+                lockBtn.disabled = false;
+            }
         });
 
         targetEl.addEventListener('targetLost', () => {
             statusDot.classList.remove('found');
+            if (isLocked) {
+                statusText.textContent = 'Locked (fixed)';
+                return; // keep content visible, ignore "lost" while locked
+            }
             statusText.textContent = 'Searching…';
             hintBanner.style.opacity = '1';
             closeInfoPanel();
