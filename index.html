@@ -9,32 +9,63 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <script>
         // Registered here (before <a-scene> is parsed) so it's ready when
-        // the target-0 entity attaches it. Freezes the tracked entity's
-        // transform + visibility once locked, overriding MindAR's per-frame
-        // tracking updates (runs after mindar-image-target's tick since it
-        // is attached second on the entity).
-        AFRAME.registerComponent('lock-override', {
+        // the target-0 entity attaches it.
+        //
+        // IMPORTANT: MindAR has no independent "world" coordinate system —
+        // the camera is always treated as fixed, and the tracked target's
+        // transform represents "where the marker is relative to camera"
+        // each frame. So freezing that transform makes content stick to the
+        // SCREEN (moves with camera) — not what we want.
+        //
+        // Instead, this component keeps consuming MindAR's live per-frame
+        // tracking (so the content correctly follows the real motherboard
+        // as the camera moves around it) but heavily smooths it with an
+        // exponential moving average, and holds the last known pose
+        // visible during brief tracking dropouts instead of flickering.
+        AFRAME.registerComponent('world-lock', {
+            schema: { factor: { type: 'number', default: 0.12 } }, // lower = smoother/stickier
             init: function () {
-                this.locked = false;
-                this.frozenMatrix = new AFRAME.THREE.Matrix4();
+                this.active = false;
+                this.ready = false;
+                this.smoothedPos = new AFRAME.THREE.Vector3();
+                this.smoothedQuat = new AFRAME.THREE.Quaternion();
+                this.smoothedScale = new AFRAME.THREE.Vector3(1, 1, 1);
+                this.rawPos = new AFRAME.THREE.Vector3();
+                this.rawQuat = new AFRAME.THREE.Quaternion();
+                this.rawScale = new AFRAME.THREE.Vector3();
             },
-            lock: function () {
-                this.el.object3D.updateMatrixWorld(true);
-                this.frozenMatrix.copy(this.el.object3D.matrix);
-                this.locked = true;
+            activate: function () {
+                this.active = true;
+                this.ready = false; // re-seed smoothing from current live pose
             },
-            unlock: function () {
-                this.locked = false;
+            deactivate: function () {
+                this.active = false;
             },
             tick: function () {
-                if (!this.locked) return;
-                this.el.object3D.matrix.copy(this.frozenMatrix);
-                this.el.object3D.matrix.decompose(
-                    this.el.object3D.position,
-                    this.el.object3D.quaternion,
-                    this.el.object3D.scale
-                );
-                this.el.object3D.visible = true;
+                if (!this.active) return;
+                const obj = this.el.object3D;
+
+                if (obj.visible) {
+                    obj.matrix.decompose(this.rawPos, this.rawQuat, this.rawScale);
+                    if (!this.ready) {
+                        this.smoothedPos.copy(this.rawPos);
+                        this.smoothedQuat.copy(this.rawQuat);
+                        this.smoothedScale.copy(this.rawScale);
+                        this.ready = true;
+                    } else {
+                        this.smoothedPos.lerp(this.rawPos, this.data.factor);
+                        this.smoothedQuat.slerp(this.rawQuat, this.data.factor);
+                        this.smoothedScale.lerp(this.rawScale, this.data.factor);
+                    }
+                }
+
+                if (this.ready) {
+                    obj.position.copy(this.smoothedPos);
+                    obj.quaternion.copy(this.smoothedQuat);
+                    obj.scale.copy(this.smoothedScale);
+                    obj.matrix.compose(obj.position, obj.quaternion, obj.scale);
+                    obj.visible = true; // keep last known pose on screen through brief dropouts
+                }
             }
         });
     </script>
@@ -443,7 +474,7 @@
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <a-entity id="target-0" mindar-image-target="targetIndex: 0" lock-override>
+        <a-entity id="target-0" mindar-image-target="targetIndex: 0" world-lock>
 
             <!--
               COORDINATE SYSTEM:
@@ -579,16 +610,16 @@
         let isLocked = false;
 
         function toggleLock() {
-            const comp = targetEl.components['lock-override'];
+            const comp = targetEl.components['world-lock'];
             if (!comp) return;
             if (!isLocked) {
-                comp.lock();
+                comp.activate();
                 isLocked = true;
                 lockBtn.textContent = '🔒';
                 lockBtn.classList.add('active');
-                statusText.textContent = 'Locked (fixed)';
+                statusText.textContent = 'Locked (sticky)';
             } else {
-                comp.unlock();
+                comp.deactivate();
                 isLocked = false;
                 lockBtn.textContent = '🔓';
                 lockBtn.classList.remove('active');
@@ -620,7 +651,7 @@
 
         targetEl.addEventListener('targetFound', () => {
             statusDot.classList.add('found');
-            statusText.textContent = isLocked ? 'Locked (fixed)' : 'Board detected';
+            statusText.textContent = isLocked ? 'Locked (sticky)' : 'Board detected';
             hintBanner.style.opacity = '0';
             if (!hasBeenFound) {
                 hasBeenFound = true;
@@ -631,8 +662,8 @@
         targetEl.addEventListener('targetLost', () => {
             statusDot.classList.remove('found');
             if (isLocked) {
-                statusText.textContent = 'Locked (fixed)';
-                return; // keep content visible, ignore "lost" while locked
+                statusText.textContent = 'Locked (sticky)';
+                return; // world-lock component keeps last known pose visible
             }
             statusText.textContent = 'Searching…';
             hintBanner.style.opacity = '1';
