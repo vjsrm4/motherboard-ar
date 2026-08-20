@@ -222,6 +222,28 @@
             margin-top: 12px;
         }
 
+        /* calibration readout */
+        #calib-readout {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 65;
+            background: rgba(16,22,31,0.92);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            pointer-events: none;
+            display: none;
+        }
+
+            #calib-readout.show {
+                display: block;
+            }
+
         /* bottom info panel */
         #info-panel {
             position: fixed;
@@ -325,6 +347,8 @@
 
     <div id="hint-banner">Motherboard ah frame la niraya vachu camera ah nikkanum</div>
 
+    <div id="calib-readout">tap board to get coords</div>
+
     <div id="info-panel">
         <button class="close-btn" onclick="closeInfoPanel()">✕</button>
         <div class="comp-name" id="panel-name">—</div>
@@ -339,7 +363,7 @@
              device-orientation-permission-ui="enabled: false">
         <a-assets></a-assets>
 
-        <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="near: 0.01; far: 20; objects: .clickable"></a-camera>
+        <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="near: 0.01; far: 20; objects: .clickable, .calib-plane"></a-camera>
 
         <a-entity id="target-0" mindar-image-target="targetIndex: 0">
 
@@ -355,8 +379,14 @@
               test pannitu, ovvoru box oda position="x y z" value ah
               adjust pannunga (README.md la iterate pannura process irukku).
             -->
-            <!-- CPU Socket -->
-            <a-box class="clickable" data-name="CPU Socket"
+            <!-- CALIBRATION PLANE: tap anywhere on empty board area to read out
+                 x,y coords for that spot in the readout bar at the bottom.
+                 Use those numbers to position the boxes below. -->
+            <a-plane class="calib-plane" position="0 0 0.001" width="3" height="3"
+                     material="opacity: 0; transparent: true; side: double"></a-plane>
+
+            <!-- Processor / CPU Socket -->
+            <a-box class="clickable" data-name="Processor / CPU Socket"
                    data-desc="AMD AM5 socket. CPU inga install pannanum. ZIF lever ah release panni CPU pin1 (gold triangle) ah socket oda pin1 marker ku match panni vekkanum."
                    data-specs="Socket:AM5|Pin Count:1718|Supports:Ryzen 7000/8000/9000|Max TDP:170W"
                    position="-0.05 0.10 0.02" width="0.10" height="0.10" depth="0.005"
@@ -391,12 +421,39 @@
                    animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
             </a-box>
 
+            <!-- PCIe x1 Slot -->
+            <a-box class="clickable" data-name="PCIe x1 Slot"
+                   data-desc="Chinna PCIe slot — sound cards, WiFi cards, capture cards madhiri chinna expansion cards ku use pannuvanga."
+                   data-specs="Version:PCIe 3.0|Lane Width:x1|Use:WiFi/Sound/Capture cards"
+                   position="-0.10 -0.20 0.02" width="0.06" height="0.015" depth="0.005"
+                   color="#39d6c8" opacity="0.35" material="shader: flat"
+                   animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+            </a-box>
+
             <!-- 24-pin ATX Power -->
             <a-box class="clickable" data-name="24-Pin ATX Power"
                    data-desc="Main power connector — PSU la irundhu motherboard ku power varradhu. Idhu illama system boot aagathu."
                    data-specs="Connector:ATX 24-Pin|Voltage Rails:+12V / +5V / +3.3V"
                    position="0.18 -0.02 0.02" width="0.03" height="0.10" depth="0.005"
                    color="#ffb454" opacity="0.35" material="shader: flat"
+                   animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+            </a-box>
+
+            <!-- CPU Power Connector -->
+            <a-box class="clickable" data-name="CPU Power Connector"
+                   data-desc="4+4 pin (illa 8-pin) EPS connector — CPU ku dedicated ah power kudukum, 24-pin connector vera idhu vera."
+                   data-specs="Connector:4+4 Pin EPS|Voltage:+12V|Function:Dedicated CPU power"
+                   position="0.15 0.15 0.02" width="0.025" height="0.05" depth="0.005"
+                   color="#ffb454" opacity="0.35" material="shader: flat"
+                   animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
+            </a-box>
+
+            <!-- SATA Ports -->
+            <a-box class="clickable" data-name="SATA Ports"
+                   data-desc="Hard disk, SSD, DVD drive connect panna use pannuvanga. L-shape connectors, usually board edge la irukum."
+                   data-specs="Version:SATA III|Speed:6Gbps|Ports:4-6 (EDIT to your board)|Use:HDD/SSD/Optical drives"
+                   position="0.10 -0.22 0.02" width="0.08" height="0.02" depth="0.005"
+                   color="#c084fc" opacity="0.35" material="shader: flat"
                    animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.65">
             </a-box>
 
@@ -469,6 +526,17 @@
                 renderSpecs(panelSpecs, el.dataset.specs);
                 infoPanel.classList.add('open');
             });
+        });
+
+        // CALIBRATION: tap empty board area to read out x,y local coords.
+        // Copy these numbers into a box's position="x y 0.02" to place it there.
+        const calibPlane = document.querySelector('.calib-plane');
+        const calibReadout = document.getElementById('calib-readout');
+        calibPlane.addEventListener('click', (evt) => {
+            const point = evt.detail.intersection.point.clone();
+            targetEl.object3D.worldToLocal(point);
+            calibReadout.textContent = `x="${point.x.toFixed(3)}" y="${point.y.toFixed(3)}"`;
+            calibReadout.classList.add('show');
         });
 
         function closeInfoPanel() {
