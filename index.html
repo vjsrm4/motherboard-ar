@@ -356,14 +356,14 @@
         <div id="panel-specs"></div>
     </div>
 
-    <a-scene mindar-image="imageTargetSrc: ./assets/targets/targets.mind; autoStart: true; uiScanning: no; uiLoading: no;"
+    <a-scene mindar-image="imageTargetSrc: ./assets/targets/targets.mind; autoStart: true; uiScanning: no; uiLoading: no; filterMinCF: 0.0001; filterBeta: 10;"
              color-space="sRGB"
-             renderer="colorManagement: true; physicallyCorrectLights: true; alpha: true"
+             renderer="colorManagement: true; physicallyCorrectLights: true; alpha: true; antialias: false; precision: mediump"
              vr-mode-ui="enabled: false"
              device-orientation-permission-ui="enabled: false">
         <a-assets></a-assets>
 
-        <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="near: 0.01; far: 20; objects: .clickable, .calib-plane"></a-camera>
+        <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="near: 0.01; far: 20; objects: .clickable"></a-camera>
 
         <a-entity id="target-0" mindar-image-target="targetIndex: 0">
 
@@ -382,7 +382,7 @@
             <!-- CALIBRATION PLANE: tap anywhere on empty board area to read out
                  x,y coords for that spot in the readout bar at the bottom.
                  Use those numbers to position the boxes below. -->
-            <a-plane class="calib-plane" position="0 0 0.001" width="3" height="3"
+            <a-plane class="clickable" data-calib="true" position="0 0 0.001" width="2" height="2"
                      material="opacity: 0; transparent: true; side: double"></a-plane>
 
             <!-- Processor / CPU Socket -->
@@ -482,6 +482,7 @@
         const panelSpecs = document.getElementById('panel-specs');
         const overviewPanel = document.getElementById('overview-panel');
         const overviewBackdrop = document.getElementById('overview-backdrop');
+        const calibReadout = document.getElementById('calib-readout');
 
         function toggleOverview() {
             overviewPanel.classList.toggle('open');
@@ -518,25 +519,21 @@
             closeInfoPanel();
         });
 
-        // click handling for each highlight box
+        // click handling: calibration plane shows coords, component boxes show info panel
         document.querySelectorAll('.clickable').forEach((el) => {
-            el.addEventListener('click', () => {
+            el.addEventListener('click', (evt) => {
+                if (el.dataset.calib === 'true') {
+                    const point = evt.detail.intersection.point.clone();
+                    targetEl.object3D.worldToLocal(point);
+                    calibReadout.textContent = `x="${point.x.toFixed(3)}" y="${point.y.toFixed(3)}"`;
+                    calibReadout.classList.add('show');
+                    return;
+                }
                 panelName.textContent = el.dataset.name;
                 panelDesc.textContent = el.dataset.desc;
                 renderSpecs(panelSpecs, el.dataset.specs);
                 infoPanel.classList.add('open');
             });
-        });
-
-        // CALIBRATION: tap empty board area to read out x,y local coords.
-        // Copy these numbers into a box's position="x y 0.02" to place it there.
-        const calibPlane = document.querySelector('.calib-plane');
-        const calibReadout = document.getElementById('calib-readout');
-        calibPlane.addEventListener('click', (evt) => {
-            const point = evt.detail.intersection.point.clone();
-            targetEl.object3D.worldToLocal(point);
-            calibReadout.textContent = `x="${point.x.toFixed(3)}" y="${point.y.toFixed(3)}"`;
-            calibReadout.classList.add('show');
         });
 
         function closeInfoPanel() {
