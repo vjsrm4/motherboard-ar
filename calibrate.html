@@ -1,142 +1,275 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Board Calibration Tool</title>
-<style>
-  :root {
-    --bg: #0a0e14; --panel: #10161f; --accent: #39d6c8; --accent-dim: #1a5c56;
-    --text: #e8f1ef; --text-dim: #7c8b93;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 16px;
-    background: var(--bg); color: var(--text);
-    font-family: 'Segoe UI', -apple-system, sans-serif;
-  }
-  h2 { color: var(--accent); font-size: 18px; margin: 0 0 4px; }
-  p.hint { color: var(--text-dim); font-size: 13px; margin: 0 0 16px; }
-  #wrap {
-    position: relative; display: inline-block; max-width: 100%;
-    border: 1px solid var(--accent-dim); border-radius: 8px; overflow: hidden;
-  }
-  #board-img { display: block; max-width: 100%; height: auto; cursor: crosshair; }
-  .marker {
-    position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px;
-    border: 2px solid var(--accent); border-radius: 50%;
-    background: rgba(57,214,200,0.3); pointer-events: none;
-  }
-  #controls {
-    margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-  }
-  #comp-label {
-    flex: 1; min-width: 180px;
-    background: var(--panel); border: 1px solid var(--accent-dim); color: var(--text);
-    padding: 9px 12px; border-radius: 6px; font-size: 14px;
-  }
-  button {
-    background: var(--accent); color: #06231f; border: none;
-    padding: 9px 16px; border-radius: 6px; font-weight: 700;
-    font-size: 14px; cursor: pointer;
-  }
-  button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent-dim); }
-  #readout {
-    margin-top: 12px; padding: 12px 14px;
-    background: var(--panel); border: 1px solid var(--accent-dim); border-radius: 8px;
-    font-family: 'Consolas', monospace; font-size: 13px; color: var(--accent);
-  }
-  #list-wrap { margin-top: 16px; }
-  #list-wrap h3 { color: var(--text-dim); font-size: 13px; margin: 0 0 8px; font-weight: 600; }
-  #point-list {
-    width: 100%; min-height: 140px;
-    background: var(--panel); border: 1px solid var(--accent-dim); color: var(--text);
-    font-family: 'Consolas', monospace; font-size: 12px; padding: 12px; border-radius: 8px;
-    white-space: pre; overflow: auto;
-  }
-</style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Board Calibration Tool</title>
+    <style>
+        :root {
+            --bg: #0a0e14;
+            --panel: #10161f;
+            --accent: #39d6c8;
+            --accent-dim: #1a5c56;
+            --text: #e8f1ef;
+            --text-dim: #7c8b93;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 16px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', -apple-system, sans-serif;
+        }
+
+        h2 {
+            color: var(--accent);
+            font-size: 18px;
+            margin: 0 0 4px;
+        }
+
+        p.hint {
+            color: var(--text-dim);
+            font-size: 13px;
+            margin: 0 0 16px;
+            line-height: 1.5;
+        }
+
+        #wrap {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+            border: 1px solid var(--accent-dim);
+            border-radius: 8px;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+        }
+
+        #board-img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            cursor: crosshair;
+            pointer-events: none;
+        }
+
+        #selection-box {
+            position: absolute;
+            border: 2px solid var(--accent);
+            background: rgba(57,214,200,0.2);
+            display: none;
+            pointer-events: none;
+        }
+
+        #controls {
+            margin-top: 14px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        #comp-label {
+            flex: 1;
+            min-width: 180px;
+            background: var(--panel);
+            border: 1px solid var(--accent-dim);
+            color: var(--text);
+            padding: 9px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        button {
+            background: var(--accent);
+            color: #06231f;
+            border: none;
+            padding: 9px 16px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+            button.secondary {
+                background: transparent;
+                color: var(--accent);
+                border: 1px solid var(--accent-dim);
+            }
+
+        #readout {
+            margin-top: 12px;
+            padding: 12px 14px;
+            background: var(--panel);
+            border: 1px solid var(--accent-dim);
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            color: var(--accent);
+            line-height: 1.6;
+            word-break: break-all;
+        }
+
+        #list-wrap {
+            margin-top: 16px;
+        }
+
+            #list-wrap h3 {
+                color: var(--text-dim);
+                font-size: 13px;
+                margin: 0 0 8px;
+                font-weight: 600;
+            }
+
+        #point-list {
+            width: 100%;
+            min-height: 160px;
+            background: var(--panel);
+            border: 1px solid var(--accent-dim);
+            color: var(--text);
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            white-space: pre;
+            overflow: auto;
+        }
+    </style>
 </head>
 <body>
 
-<h2>Board Calibration Tool</h2>
-<p class="hint">
-  Board photo ah keezha click pannunga → x,y coordinates kedaikும். Component name type panni "Add to list"
-  click pannunga → adha ready-to-paste position value list la add aagum. Ella component ku mudinjadhum,
-  list ah copy panni <b>index.html</b> la ovvoru box oda <code>position="..."</code> ku paste pannunga.
-</p>
+    <h2>Board Calibration Tool</h2>
+    <p class="hint">
+        Board photo mela component ah <b>click panni drag pannunga</b> (corner to corner, box madhiri select pannunga) —
+        position + width + height ellam automatic ah calculate aagும். Chinna connector/pin madhiri ah na chinna drag pannunga,
+        periya component ku periya drag pannunga. Name type panni "Add to list" pannunga. Ella component mudinjadhum,
+        keezha list ah copy panni <b>index.html</b> la matching box la paste pannunga.
+    </p>
 
-<div id="wrap">
-  <img id="board-img" src="assets/targets/board-photo.jpg" alt="Motherboard" />
-</div>
+    <div id="wrap">
+        <img id="board-img" src="assets/targets/board-photo.jpg" alt="Motherboard" />
+        <div id="selection-box"></div>
+    </div>
 
-<div id="readout">Click on the board to see coordinates here</div>
+    <div id="readout">Board mela drag pannunga (component ah box madhiri select pannunga)</div>
 
-<div id="controls">
-  <input type="text" id="comp-label" placeholder="Component name (e.g. CPU Socket)" />
-  <button id="add-btn">Add to list</button>
-  <button class="secondary" id="clear-btn">Clear list</button>
-</div>
+    <div id="controls">
+        <input type="text" id="comp-label" placeholder="Component name (e.g. CPU Socket)" />
+        <button id="add-btn">Add to list</button>
+        <button class="secondary" id="clear-btn">Clear list</button>
+    </div>
 
-<div id="list-wrap">
-  <h3>Collected points (copy the position value into index.html)</h3>
-  <textarea id="point-list" readonly></textarea>
-</div>
+    <div id="list-wrap">
+        <h3>Collected components (copy into index.html)</h3>
+        <textarea id="point-list" readonly></textarea>
+    </div>
 
-<script>
-  const img = document.getElementById('board-img');
-  const wrap = document.getElementById('wrap');
-  const readout = document.getElementById('readout');
-  const compLabel = document.getElementById('comp-label');
-  const pointList = document.getElementById('point-list');
-  const addBtn = document.getElementById('add-btn');
-  const clearBtn = document.getElementById('clear-btn');
+    <script>
+        const img = document.getElementById('board-img');
+        const wrap = document.getElementById('wrap');
+        const selectionBox = document.getElementById('selection-box');
+        const readout = document.getElementById('readout');
+        const compLabel = document.getElementById('comp-label');
+        const pointList = document.getElementById('point-list');
+        const addBtn = document.getElementById('add-btn');
+        const clearBtn = document.getElementById('clear-btn');
 
-  let lastCoords = null;
+        let dragStart = null;
+        let lastResult = null;
 
-  img.addEventListener('click', (e) => {
-    const rect = img.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+        function getRelPos(clientX, clientY) {
+            const rect = img.getBoundingClientRect();
+            return {
+                x: Math.min(Math.max(clientX - rect.left, 0), rect.width),
+                y: Math.min(Math.max(clientY - rect.top, 0), rect.height),
+            };
+        }
 
-    // scale from displayed size to natural (original) pixel size
-    const scaleX = img.naturalWidth / rect.width;
-    const scaleY = img.naturalHeight / rect.height;
-    const pixelX = clickX * scaleX;
-    const pixelY = clickY * scaleY;
+        function pixelToAR(displayX, displayY) {
+            const rect = img.getBoundingClientRect();
+            const scaleX = img.naturalWidth / rect.width;
+            const scaleY = img.naturalHeight / rect.height;
+            const pixelX = displayX * scaleX;
+            const pixelY = displayY * scaleY;
+            const x = (pixelX - img.naturalWidth / 2) / img.naturalWidth;
+            const y = (img.naturalHeight / 2 - pixelY) / img.naturalWidth;
+            return { x, y };
+        }
 
-    // convert to AR local coords:
-    // plane width = 1 unit = img.naturalWidth pixels, height scales proportionally
-    const x = (pixelX - img.naturalWidth / 2) / img.naturalWidth;
-    const y = (img.naturalHeight / 2 - pixelY) / img.naturalWidth;
+        wrap.addEventListener('pointerdown', (e) => {
+            dragStart = getRelPos(e.clientX, e.clientY);
+            selectionBox.style.left = dragStart.x + 'px';
+            selectionBox.style.top = dragStart.y + 'px';
+            selectionBox.style.width = '0px';
+            selectionBox.style.height = '0px';
+            selectionBox.style.display = 'block';
+            wrap.setPointerCapture(e.pointerId);
+        });
 
-    lastCoords = { x, y };
-    readout.textContent = `x="${x.toFixed(3)}" y="${y.toFixed(3)}"  →  position="${x.toFixed(3)} ${y.toFixed(3)} 0.02"`;
+        wrap.addEventListener('pointermove', (e) => {
+            if (!dragStart) return;
+            const cur = getRelPos(e.clientX, e.clientY);
+            const left = Math.min(dragStart.x, cur.x);
+            const top = Math.min(dragStart.y, cur.y);
+            const w = Math.abs(cur.x - dragStart.x);
+            const h = Math.abs(cur.y - dragStart.y);
+            selectionBox.style.left = left + 'px';
+            selectionBox.style.top = top + 'px';
+            selectionBox.style.width = w + 'px';
+            selectionBox.style.height = h + 'px';
+        });
 
-    // visual marker
-    document.querySelectorAll('.marker').forEach((m) => m.remove());
-    const marker = document.createElement('div');
-    marker.className = 'marker';
-    marker.style.left = clickX + 'px';
-    marker.style.top = clickY + 'px';
-    wrap.appendChild(marker);
-  });
+        wrap.addEventListener('pointerup', (e) => {
+            if (!dragStart) return;
+            const cur = getRelPos(e.clientX, e.clientY);
+            let left = Math.min(dragStart.x, cur.x);
+            let top = Math.min(dragStart.y, cur.y);
+            let right = Math.max(dragStart.x, cur.x);
+            let bottom = Math.max(dragStart.y, cur.y);
 
-  addBtn.addEventListener('click', () => {
-    if (!lastCoords) {
-      alert('Board mela oru spot ah click pannunga mudhalla!');
-      return;
-    }
-    const label = compLabel.value.trim() || 'Component';
-    const line = `${label}: position="${lastCoords.x.toFixed(3)} ${lastCoords.y.toFixed(3)} 0.02"\n`;
-    pointList.value += line;
-    compLabel.value = '';
-    compLabel.focus();
-  });
+            // if the drag was tiny (basically a tap), treat as a small fixed-size point
+            if (right - left < 4 && bottom - top < 4) {
+                const pad = 8; // display px padding to give it a minimum visible size
+                left -= pad; right += pad; top -= pad; bottom += pad;
+            }
 
-  clearBtn.addEventListener('click', () => {
-    pointList.value = '';
-  });
-</script>
+            const topLeftAR = pixelToAR(left, top);
+            const bottomRightAR = pixelToAR(right, bottom);
+
+            const centerX = (topLeftAR.x + bottomRightAR.x) / 2;
+            const centerY = (topLeftAR.y + bottomRightAR.y) / 2;
+            const width = Math.abs(bottomRightAR.x - topLeftAR.x);
+            const height = Math.abs(topLeftAR.y - bottomRightAR.y);
+
+            lastResult = { centerX, centerY, width, height };
+            readout.textContent =
+                `position="${centerX.toFixed(3)} ${centerY.toFixed(3)} 0.02"  width="${width.toFixed(3)}"  height="${height.toFixed(3)}"`;
+
+            dragStart = null;
+        });
+
+        addBtn.addEventListener('click', () => {
+            if (!lastResult) {
+                alert('Board mela oru component ah drag panni select pannunga mudhalla!');
+                return;
+            }
+            const label = compLabel.value.trim() || 'Component';
+            const line =
+                `${label}:\n  position="${lastResult.centerX.toFixed(3)} ${lastResult.centerY.toFixed(3)} 0.02" width="${lastResult.width.toFixed(3)}" height="${lastResult.height.toFixed(3)}"\n\n`;
+            pointList.value += line;
+            compLabel.value = '';
+            compLabel.focus();
+        });
+
+        clearBtn.addEventListener('click', () => {
+            pointList.value = '';
+        });
+    </script>
 
 </body>
 </html>
