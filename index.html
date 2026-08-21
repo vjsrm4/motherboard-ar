@@ -466,17 +466,16 @@
     <div id="overview-panel">
         <button class="close-btn" onclick="toggleOverview()">✕</button>
         <!-- EDIT THIS SECTION: replace with your actual motherboard's details -->
-        <div class="board-name">EDIT: e.g. ASUS ROG STRIX B650-A</div>
+        <div class="board-name">DELL E93839 AMO327 OXCR8D</div>
         <div class="board-sub">Board overview — tap outside or ✕ to close</div>
-        <div class="spec-row"><span class="label">Chipset</span><span class="value">EDIT: e.g. AMD B650</span></div>
-        <div class="spec-row"><span class="label">CPU Socket</span><span class="value">EDIT: e.g. AM5</span></div>
-        <div class="spec-row"><span class="label">Supported CPUs</span><span class="value">EDIT: e.g. Ryzen 7000/8000/9000</span></div>
-        <div class="spec-row"><span class="label">RAM Type</span><span class="value">EDIT: e.g. DDR5</span></div>
-        <div class="spec-row"><span class="label">Max RAM</span><span class="value">EDIT: e.g. 192GB (4 slots)</span></div>
-        <div class="spec-row"><span class="label">Form Factor</span><span class="value">EDIT: e.g. ATX</span></div>
-        <div class="spec-row"><span class="label">PCIe Version</span><span class="value">EDIT: e.g. PCIe 5.0</span></div>
-        <div class="spec-row"><span class="label">M.2 Slots</span><span class="value">EDIT: e.g. 2</span></div>
-        <div class="spec-row"><span class="label">Rear USB Ports</span><span class="value">EDIT: e.g. 8</span></div>
+        <div class="spec-row"><span class="label">Chipset</span><span class="value">Intel H87</span></div>
+        <div class="spec-row"><span class="label">CPU Socket</span><span class="value">LGA 1150</span></div>
+        <div class="spec-row"><span class="label">Supported CPUs</span><span class="value">Intel Core i3-4xxx, i5-4xxx, i7-4xxx, i3-5xxx, i5-5xxx,i7-5xxx, i3-4xxx, i5-4xxx, i7-4xxx, i3-5xxx, i5-5xxx, i7-5xxx</span></div>
+        <div class="spec-row"><span class="label">RAM Type</span><span class="value">DDR3</span></div>
+        <div class="spec-row"><span class="label">Main Power</span><span class="value">24-Pin</span></div>
+        <div class="spec-row"><span class="label">Memory clock speedr</span><span class="value">2133 MHz</span></div>
+        <div class="spec-row"><span class="label">PCIe Version</span><span class="value">PCI-Express x16</span></div>
+   
     </div>
 
     <div id="hint-banner"><span class="dot"></span>Center the board inside the frame</div>
@@ -513,8 +512,8 @@
             -->
             <!-- Processor / CPU Socket -->
             <a-box class="clickable" data-name="Processor / CPU Socket"
-                   data-desc="AMD AM5 socket. This is where the CPU gets installed. Release the ZIF lever and align the CPU's pin1 marker (gold triangle) with the socket's pin1 marker."
-                   data-specs="Socket:AM5|Pin Count:1718|Supports:Ryzen 7000/8000/9000|Max TDP:170W"
+                   data-desc="Intel H87 and LGA1150 Support: Designed for use with Intel processors that support the LGA1150 socket, leveraging the technology and capabilities of the Intel H87 chipset."
+                   data-specs="Intel Core i3-4xxx, Intel Core i5-4xxx, Intel Core i7-4xxx, Intel Core i3-5xxx, Intel Core i5-5xxx, Intel Core i7-5xxx"
                    position="0.138 0.111 0.02" width="0.257" height="0.227" depth="0.005"
                    color="#39d6c8" opacity="0.18" material="shader: flat">
                 <a-entity glow-border="width: 0.215; height: 0.176; color: #39d6c8" position="0 0 0.001"></a-entity>
@@ -524,8 +523,8 @@
 
             <!-- RAM Slots -->
             <a-box class="clickable" data-name="RAM Slots (DIMM)"
-                   data-desc="DDR5 DIMM slots, 4 units. For dual-channel, install your first RAM sticks in the A2 & B2 slots (check your motherboard manual for the exact slot order)."
-                   data-specs="Type:DDR5|Slots:4|Max Capacity:192GB|Max Speed:6400MHz (OC)|Channel:Dual"
+                   data-desc="DDR3 Memory Support: Supports up to 4 DDR3 memory modules, providing high capacity and flexibility for demanding and multitasking applications."
+                   data-specs="Type:DDR3|Slots:4"
                    position="0.119 -0.176 0.02" width="0.715" height="0.087" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
                 <a-entity glow-border="width: 0.612; height: 0.070; color: #ffb454" position="0 0 0.001"></a-entity>
@@ -536,7 +535,7 @@
             <!-- Chipset -->
             <a-box class="clickable" data-name="Chipset"
                    data-desc="Motherboard chipset — the traffic controller for CPU, RAM, storage, USB, and PCIe lanes. It runs hot enough to need its own heatsink."
-                   data-specs="Chipset:B650 (EDIT to your board)|PCIe Lanes:Up to 24|USB Ports:Up to 12|SATA Ports:4"
+                   data-specs="Intel H87"
                    position="-0.263 -0.026 0.02" width="0.104" height="0.106" depth="0.005"
                    color="#c084fc" opacity="0.18" material="shader: flat">
                 <a-entity glow-border="width: 0.096; height: 0.097; color: #c084fc" position="0 0 0.001"></a-entity>
@@ -546,7 +545,7 @@
 
             <!-- PCIe Slot -->
             <a-box class="clickable" data-name="PCIe x16 Slot"
-                   data-desc="The main slot for your graphics card (GPU). Look for PCIe Gen4/Gen5 support depending on your board. Has a latch/lever that clicks to secure the GPU in place."
+                   data-desc="Extensive connectivity options: Includes multiple expansion and connectivity options such as PCI-E x16 for graphics cards"
                    data-specs="Version:PCIe 5.0|Lane Width:x16|Slots Available:1"
                    position="-0.409 0.165 0.02" width="0.055" height="0.463" depth="0.005"
                    color="#39d6c8" opacity="0.18" material="shader: flat">
@@ -567,14 +566,14 @@
             </a-box>
 
             <!-- Audio -->
-            <a-box class="clickable" data-name="ATX Power"
-                   data-desc="Main power connector — brings power from the PSU to the motherboard. Without this connected, the system won't boot."
+            <a-box class="clickable" data-name="Audio"
+                   data-desc="Audio Codec chip process digital audio."
                    data-specs="Connector:ATX 24-Pin|Voltage Rails:+12V / +5V / +3.3V"
                    position="-0.474 0.487 0.02" width="0.045" height="0.154" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
                 <a-entity glow-border="width: 0.037; height: 0.089; color: #ffb454" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0 0.01" rotation="0 0 90" width="0.17" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
-                <a-text value="ATX PWR" align="center" color="#ffb454" width="0.65" rotation="0 0 90" position="0 0 0.012"></a-text>
+                <a-text value="Audio" align="center" color="#ffb454" width="0.65" rotation="0 0 90" position="0 0 0.012"></a-text>
             </a-box>
 
             <!-- CPU Power Connector -->
@@ -591,7 +590,7 @@
             <!-- SATA Ports -->
             <a-box class="clickable" data-name="SATA Ports"
                    data-desc="Used to connect hard disks, SSDs, or DVD drives. L-shaped connectors, usually found along the board's edge."
-                   data-specs="Version:SATA III|Speed:6Gbps|Ports:4-6 (EDIT to your board)|Use:HDD/SSD/Optical drives"
+                   data-specs="SATA III for high-speed hard drives"
                    position="-0.471 -0.406 0.02" width="0.054" height="0.282" depth="0.005"
                    color="#c084fc" opacity="0.18" material="shader: flat">
                 <a-entity glow-border="width: 0.049; height: 0.259; color: #c084fc" position="0 0 0.001"></a-entity>
