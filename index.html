@@ -14,18 +14,20 @@
         // IMPORTANT: MindAR has no independent "world" coordinate system —
         // the camera is always treated as fixed, and the tracked target's
         // transform represents "where the marker is relative to camera"
-        // each frame. So freezing that transform makes content stick to the
-        // SCREEN (moves with camera) — not what we want.
+        // each frame. Raw per-frame tracking data is naturally noisy, which
+        // is what causes the content to jitter/shake even when the camera
+        // and board are both still.
         //
-        // Instead, this component keeps consuming MindAR's live per-frame
-        // tracking (so the content correctly follows the real motherboard
-        // as the camera moves around it) but heavily smooths it with an
-        // exponential moving average, and holds the last known pose
-        // visible during brief tracking dropouts instead of flickering.
-        AFRAME.registerComponent('world-lock', {
-            schema: { factor: { type: 'number', default: 0.12 } }, // lower = smoother/stickier
+        // This component runs on every tracked target and smooths that raw
+        // pose with an exponential moving average (EMA), always on — no
+        // toggle needed. Lower "factor" = heavier smoothing (very smooth,
+        // slightly more lag). Higher "factor" = snappier but more jittery.
+        // Smoothing automatically re-seeds itself the moment a target is
+        // (re)acquired, so there's never a jump or stale pose carried over
+        // from a previous tracking session.
+        AFRAME.registerComponent('smooth-tracking', {
+            schema: { factor: { type: 'number', default: 0.1 } }, // lower = smoother
             init: function () {
-                this.active = false;
                 this.ready = false;
                 this.smoothedPos = new AFRAME.THREE.Vector3();
                 this.smoothedQuat = new AFRAME.THREE.Quaternion();
@@ -34,38 +36,34 @@
                 this.rawQuat = new AFRAME.THREE.Quaternion();
                 this.rawScale = new AFRAME.THREE.Vector3();
             },
-            activate: function () {
-                this.active = true;
-                this.ready = false; // re-seed smoothing from current live pose
-            },
-            deactivate: function () {
-                this.active = false;
-            },
             tick: function () {
-                if (!this.active) return;
                 const obj = this.el.object3D;
 
-                if (obj.visible) {
-                    obj.matrix.decompose(this.rawPos, this.rawQuat, this.rawScale);
-                    if (!this.ready) {
-                        this.smoothedPos.copy(this.rawPos);
-                        this.smoothedQuat.copy(this.rawQuat);
-                        this.smoothedScale.copy(this.rawScale);
-                        this.ready = true;
-                    } else {
-                        this.smoothedPos.lerp(this.rawPos, this.data.factor);
-                        this.smoothedQuat.slerp(this.rawQuat, this.data.factor);
-                        this.smoothedScale.lerp(this.rawScale, this.data.factor);
-                    }
+                if (!obj.visible) {
+                    // Target isn't currently tracked — reset so the next
+                    // acquisition starts clean instead of smoothing in from
+                    // a stale/old position.
+                    this.ready = false;
+                    return;
                 }
 
-                if (this.ready) {
-                    obj.position.copy(this.smoothedPos);
-                    obj.quaternion.copy(this.smoothedQuat);
-                    obj.scale.copy(this.smoothedScale);
-                    obj.matrix.compose(obj.position, obj.quaternion, obj.scale);
-                    obj.visible = true; // keep last known pose on screen through brief dropouts
+                obj.matrix.decompose(this.rawPos, this.rawQuat, this.rawScale);
+
+                if (!this.ready) {
+                    this.smoothedPos.copy(this.rawPos);
+                    this.smoothedQuat.copy(this.rawQuat);
+                    this.smoothedScale.copy(this.rawScale);
+                    this.ready = true;
+                } else {
+                    this.smoothedPos.lerp(this.rawPos, this.data.factor);
+                    this.smoothedQuat.slerp(this.rawQuat, this.data.factor);
+                    this.smoothedScale.lerp(this.rawScale, this.data.factor);
                 }
+
+                obj.position.copy(this.smoothedPos);
+                obj.quaternion.copy(this.smoothedQuat);
+                obj.scale.copy(this.smoothedScale);
+                obj.matrix.compose(obj.position, obj.quaternion, obj.scale);
             }
         });
     </script>
@@ -197,52 +195,6 @@
             justify-content: center;
             cursor: pointer;
         }
-
-        #lock-btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: rgba(57,214,200,0.12);
-            border: 1px solid var(--accent-dim);
-            color: var(--accent);
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-
-            #lock-btn.active {
-                background: var(--accent);
-                color: #06231f;
-                box-shadow: 0 0 10px rgba(57,214,200,0.6);
-            }
-
-            #lock-btn:disabled {
-                opacity: 0.35;
-                cursor: not-allowed;
-            }
-
-        #lock-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            height: 28px;
-            padding: 0 12px;
-            border-radius: 14px;
-            background: rgba(57,214,200,0.12);
-            border: 1px solid var(--accent-dim);
-            color: var(--accent);
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-
-            #lock-btn.locked {
-                background: var(--accent);
-                color: #06231f;
-                border-color: var(--accent);
-            }
 
         /* board overview modal */
         #overview-backdrop {
@@ -403,14 +355,13 @@
     <div id="loading-screen">
         <div class="spinner"></div>
         <div>Loading AR engine…</div>
-        <div class="hint">Camera permission kekkum, allow pannunga da</div>
+        <div class="hint">You'll be asked for camera permission — please allow it</div>
     </div>
 
     <div id="topbar">
         <div class="title">Motherboard<span>AR</span></div>
         <div class="topbar-right">
             <span id="status-dot"></span><span id="status-text">Searching…</span>
-            <button id="lock-btn" onclick="toggleLock()" aria-label="Lock position" disabled>🔓</button>
             <button id="info-btn" onclick="toggleOverview()" aria-label="Board overview">i</button>
         </div>
     </div>
@@ -432,7 +383,7 @@
         <div class="spec-row"><span class="label">Rear USB Ports</span><span class="value">EDIT: e.g. 8</span></div>
     </div>
 
-    <div id="hint-banner">Motherboard ah frame la niraya vachu camera ah nikkanum</div>
+    <div id="hint-banner">Fill the frame with your motherboard and hold steady</div>
 
     <div id="info-panel">
         <button class="close-btn" onclick="closeInfoPanel()">✕</button>
@@ -441,7 +392,7 @@
         <div id="panel-specs"></div>
     </div>
 
-    <a-scene mindar-image="imageTargetSrc: ./assets/targets/targets.mind; autoStart: true; uiScanning: no; uiLoading: no; filterMinCF: 0.00001; filterBeta: 1; warmupTolerance: 3; missTolerance: 10; maxTrack: 2;"
+    <a-scene mindar-image="imageTargetSrc: ./assets/targets/targets.mind; autoStart: true; uiScanning: no; uiLoading: no; filterMinCF: 0.0001; filterBeta: 300; warmupTolerance: 5; missTolerance: 15; maxTrack: 2;"
              color-space="sRGB"
              renderer="colorManagement: true; physicallyCorrectLights: true; alpha: true; antialias: false; precision: mediump"
              vr-mode-ui="enabled: false"
@@ -450,7 +401,7 @@
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <a-entity id="target-0" mindar-image-target="targetIndex: 0" world-lock>
+        <a-entity id="target-0" mindar-image-target="targetIndex: 0" smooth-tracking>
 
             <!--
               COORDINATE SYSTEM:
@@ -460,13 +411,13 @@
               y: bottom(-) to top(+) across the board
               z: small positive value lifts the box off the board surface (toward camera)
 
-              Ivlo default numbers are PLACEHOLDERS. Un board photo vechu
-              test pannitu, ovvoru box oda position="x y z" value ah
-              adjust pannunga (README.md la iterate pannura process irukku).
+              These default numbers are all PLACEHOLDERS. Test against your
+              own board photo and adjust each box's position="x y z" value
+              (see README.md for the calibration/iteration process).
             -->
             <!-- Processor / CPU Socket -->
             <a-box class="clickable" data-name="Processor / CPU Socket"
-                   data-desc="AMD AM5 socket. CPU inga install pannanum. ZIF lever ah release panni CPU pin1 (gold triangle) ah socket oda pin1 marker ku match panni vekkanum."
+                   data-desc="AMD AM5 socket. This is where the CPU gets installed. Release the ZIF lever and align the CPU's pin1 marker (gold triangle) with the socket's pin1 marker."
                    data-specs="Socket:AM5|Pin Count:1718|Supports:Ryzen 7000/8000/9000|Max TDP:170W"
                    position="0.093 0.148 0.02" width="0.215" height="0.176" depth="0.005"
                    color="#39d6c8" opacity="0.18" material="shader: flat">
@@ -479,7 +430,7 @@
 
             <!-- RAM Slots -->
             <a-box class="clickable" data-name="RAM Slots (DIMM)"
-                   data-desc="DDR5 DIMM slots, 4 units. Dual-channel ku A2 & B2 slots la first ah RAM potanum (motherboard manual check pannunga exact slot order ku)."
+                   data-desc="DDR5 DIMM slots, 4 units. For dual-channel, install your first RAM sticks in the A2 & B2 slots (check your motherboard manual for the exact slot order)."
                    data-specs="Type:DDR5|Slots:4|Max Capacity:192GB|Max Speed:6400MHz (OC)|Channel:Dual"
                    position="0.090 -0.096 0.02" width="0.612" height="0.070" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
@@ -492,7 +443,7 @@
 
             <!-- Chipset -->
             <a-box class="clickable" data-name="Chipset"
-                   data-desc="Motherboard chipset — CPU, RAM, storage, USB, PCIe lanes ku idhan traffic controller. Idhu mela heatsink irukum, avlo heat varum."
+                   data-desc="Motherboard chipset — the traffic controller for CPU, RAM, storage, USB, and PCIe lanes. It runs hot enough to need its own heatsink."
                    data-specs="Chipset:B650 (EDIT to your board)|PCIe Lanes:Up to 24|USB Ports:Up to 12|SATA Ports:4"
                    position="-0.237 0.026 0.02" width="0.096" height="0.097" depth="0.005"
                    color="#c084fc" opacity="0.18" material="shader: flat">
@@ -505,7 +456,7 @@
 
             <!-- PCIe Slot -->
             <a-box class="clickable" data-name="PCIe x16 Slot"
-                   data-desc="Graphics card (GPU) ku main slot. PCIe Gen4/Gen5 support pannum board porthu. Click aana lever irukum GPU ah lock pannaradhuku."
+                   data-desc="The main slot for your graphics card (GPU). Look for PCIe Gen4/Gen5 support depending on your board. Has a latch/lever that clicks to secure the GPU in place."
                    data-specs="Version:PCIe 5.0|Lane Width:x16|Slots Available:1"
                    position="-0.354 0.178 0.02" width="0.048" height="0.368" depth="0.005"
                    color="#39d6c8" opacity="0.18" material="shader: flat">
@@ -518,7 +469,7 @@
 
             <!-- PCIe x1 Slot -->
             <a-box class="clickable" data-name="PCIe x1 Slot"
-                   data-desc="Chinna PCIe slot — sound cards, WiFi cards, capture cards madhiri chinna expansion cards ku use pannuvanga."
+                   data-desc="A smaller PCIe slot — used for smaller expansion cards like sound cards, WiFi cards, or capture cards."
                    data-specs="Version:PCIe 3.0|Lane Width:x1|Use:WiFi/Sound/Capture cards"
                    position="-0.265 0.279 0.02" width="0.041" height="0.167" depth="0.005"
                    color="#39d6c8" opacity="0.18" material="shader: flat">
@@ -531,7 +482,7 @@
 
             <!-- Audio -->
             <a-box class="clickable" data-name="24-Pin ATX Power"
-                   data-desc="Main power connector — PSU la irundhu motherboard ku power varradhu. Idhu illama system boot aagathu."
+                   data-desc="Main power connector — brings power from the PSU to the motherboard. Without this connected, the system won't boot."
                    data-specs="Connector:ATX 24-Pin|Voltage Rails:+12V / +5V / +3.3V"
                    position="-0.393 0.418 0.02" width="0.037" height="0.089" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
@@ -544,7 +495,7 @@
 
             <!-- CPU Power Connector -->
             <a-box class="clickable" data-name="CPU Power Connector"
-                   data-desc="4+4 pin (illa 8-pin) EPS connector — CPU ku dedicated ah power kudukum, 24-pin connector vera idhu vera."
+                   data-desc="4+4 pin (or 8-pin) EPS connector — supplies dedicated power to the CPU, separate from the main 24-pin connector."
                    data-specs="Connector:4+4 Pin EPS|Voltage:+12V|Function:Dedicated CPU power"
                    position="-0.035 -0.435 0.02" width="0.091" height="0.059" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
@@ -557,7 +508,7 @@
 
             <!-- SATA Ports -->
             <a-box class="clickable" data-name="SATA Ports"
-                   data-desc="Hard disk, SSD, DVD drive connect panna use pannuvanga. L-shape connectors, usually board edge la irukum."
+                   data-desc="Used to connect hard disks, SSDs, or DVD drives. L-shaped connectors, usually found along the board's edge."
                    data-specs="Version:SATA III|Speed:6Gbps|Ports:4-6 (EDIT to your board)|Use:HDD/SSD/Optical drives"
                    position="-0.439 -0.326 0.02" width="0.049" height="0.259" depth="0.005"
                    color="#c084fc" opacity="0.18" material="shader: flat">
@@ -570,7 +521,7 @@
 
             <!-- CMOS Battery -->
             <a-box class="clickable" data-name="CMOS Battery"
-                   data-desc="CR2032 coin cell. BIOS settings + system clock ah power off panna store pannradhukku. Idhu drain aana BIOS reset aagum."
+                   data-desc="CR2032 coin cell. Keeps BIOS settings and the system clock powered while the PC is off. If it drains, your BIOS settings will reset."
                    data-specs="Type:CR2032|Voltage:3V|Function:BIOS/RTC backup"
                    position="0.257 -0.414 0.02" width="0.104" height="0.097" depth="0.005"
                    color="#c084fc" opacity="0.18" material="shader: flat">
@@ -586,11 +537,11 @@
         <!-- SIDE VIEW TARGET (targetIndex: 1) — second image in the same
              targets.mind file. Calibrate these boxes using calibrate.html
              (change its img src to your rear-IO photo first — see README). -->
-        <a-entity id="target-1" mindar-image-target="targetIndex: 1" world-lock>
+        <a-entity id="target-1" mindar-image-target="targetIndex: 1" smooth-tracking>
 
             <!-- USB Ports -->
             <a-box class="clickable" data-name="USB Ports"
-                   data-desc="Keyboard, mouse, pendrive, external HDD/SSD connect panna use pannuvanga. Blue color port na USB 3.0, black na USB 2.0."
+                   data-desc="Used to connect a keyboard, mouse, pendrive, or external HDD/SSD. Blue ports are USB 3.0, black ports are USB 2.0."
                    data-specs="Version:USB 3.2 Gen1|Speed:5Gbps|Count:EDIT to your board"
                    position="0.059 0.004 0.02" width="0.084" height="0.175" depth="0.005"
                    color="#39d6c8" opacity="0.18" material="shader: flat">
@@ -603,7 +554,7 @@
 
             <!-- HDMI / Display Out -->
             <a-box class="clickable" data-name="HDMI / Display Out"
-                   data-desc="Monitor connect panna use pannuvanga — built-in graphics (iGPU) use pண்ணும் bodhu than idha use pண்ணுவீங்க, dedicated GPU vechurundha ithu use aagаthu."
+                   data-desc="Used to connect a monitor — but only works when you're using the built-in graphics (iGPU). If you have a dedicated GPU installed, this port won't be active."
                    data-specs="Type:HDMI 1.4/2.0 (EDIT)|Max Resolution:4K@30Hz or 60Hz|Use:iGPU display out"
                    position="-0.284 -0.068 0.02" width="0.191" height="0.043" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
@@ -616,7 +567,7 @@
 
             <!-- Ethernet / LAN -->
             <a-box class="clickable" data-name="Ethernet (LAN)"
-                   data-desc="RJ45 network cable connect panna — wired internet/LAN connection ku use pannuvanga. Konjam LED lights irukum, network activity kaатும்."
+                   data-desc="For connecting an RJ45 network cable — used for a wired internet/LAN connection. Has small LED lights that show network activity."
                    data-specs="Speed:1Gbps (Gigabit LAN)|Connector:RJ45|Use:Wired internet/network"
                    position="0.159 0.044 0.02" width="0.100" height="0.074" depth="0.005"
                    color="#c084fc" opacity="0.18" material="shader: flat">
@@ -629,7 +580,7 @@
 
             <!-- Audio Jacks -->
             <a-box class="clickable" data-name="Audio Jacks"
-                   data-desc="3.5mm audio ports — speaker, headphone, microphone connect panna. Usually 3 illa 6 jacks color-coded ah irukும் (green=speaker, pink=mic, blue=line-in)."
+                   data-desc="3.5mm audio ports — for connecting speakers, headphones, or a microphone. Usually 3 or 6 color-coded jacks (green=speaker, pink=mic, blue=line-in)."
                    data-specs="Type:3.5mm Analog Jacks|Count:3-6 (EDIT to your board)|Color Code:Green/Pink/Blue"
                    position="0.259 -0.015 0.02" width="0.074" height="0.141" depth="0.005"
                    color="#39d6c8" opacity="0.18" material="shader: flat">
@@ -659,33 +610,8 @@
         const panelSpecs = document.getElementById('panel-specs');
         const overviewPanel = document.getElementById('overview-panel');
         const overviewBackdrop = document.getElementById('overview-backdrop');
-        const lockBtn = document.getElementById('lock-btn');
 
-        let hasBeenFound = false;
-        let isLocked = false;
         let foundCount = 0; // how many targets are currently tracked at once
-
-        function toggleLock() {
-            if (!isLocked) {
-                targetEls.forEach((el) => {
-                    const comp = el.components['world-lock'];
-                    if (comp) comp.activate();
-                });
-                isLocked = true;
-                lockBtn.textContent = '🔒';
-                lockBtn.classList.add('active');
-                statusText.textContent = 'Locked (sticky)';
-            } else {
-                targetEls.forEach((el) => {
-                    const comp = el.components['world-lock'];
-                    if (comp) comp.deactivate();
-                });
-                isLocked = false;
-                lockBtn.textContent = '🔓';
-                lockBtn.classList.remove('active');
-                statusText.textContent = foundCount > 0 ? 'Board detected' : 'Searching…';
-            }
-        }
 
         function toggleOverview() {
             overviewPanel.classList.toggle('open');
@@ -713,22 +639,14 @@
             el.addEventListener('targetFound', () => {
                 foundCount++;
                 statusDot.classList.add('found');
-                statusText.textContent = isLocked ? 'Locked (sticky)' : 'Board detected';
+                statusText.textContent = 'Board detected';
                 hintBanner.style.opacity = '0';
-                if (!hasBeenFound) {
-                    hasBeenFound = true;
-                    lockBtn.disabled = false;
-                }
             });
 
             el.addEventListener('targetLost', () => {
                 foundCount = Math.max(0, foundCount - 1);
-                if (foundCount === 0) statusDot.classList.remove('found');
-                if (isLocked) {
-                    statusText.textContent = 'Locked (sticky)';
-                    return; // world-lock component keeps last known pose visible
-                }
                 if (foundCount === 0) {
+                    statusDot.classList.remove('found');
                     statusText.textContent = 'Searching…';
                     hintBanner.style.opacity = '1';
                     closeInfoPanel();
