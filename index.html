@@ -121,11 +121,112 @@
             }
         }
 
+        #loading-screen .title {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
         #loading-screen .hint {
             color: var(--text-dim);
             font-size: 13px;
             text-align: center;
             padding: 0 24px;
+        }
+
+        /* scanning viewfinder — shown while no target is tracked */
+        #scan-frame {
+            position: fixed;
+            top: 46%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(78vw, 360px);
+            aspect-ratio: 4 / 3;
+            z-index: 40;
+            border-radius: 20px;
+            box-shadow: 0 0 0 999px rgba(10, 14, 20, 0.55);
+            pointer-events: none;
+            overflow: hidden;
+            opacity: 1;
+            transition: opacity 0.35s ease;
+        }
+
+            #scan-frame.hidden {
+                opacity: 0;
+            }
+
+            #scan-frame .corner {
+                position: absolute;
+                width: 30px;
+                height: 30px;
+                border: 3px solid var(--accent);
+            }
+
+                #scan-frame .corner.tl {
+                    top: 0;
+                    left: 0;
+                    border-right: none;
+                    border-bottom: none;
+                    border-top-left-radius: 16px;
+                }
+
+                #scan-frame .corner.tr {
+                    top: 0;
+                    right: 0;
+                    border-left: none;
+                    border-bottom: none;
+                    border-top-right-radius: 16px;
+                }
+
+                #scan-frame .corner.bl {
+                    bottom: 0;
+                    left: 0;
+                    border-right: none;
+                    border-top: none;
+                    border-bottom-left-radius: 16px;
+                }
+
+                #scan-frame .corner.br {
+                    bottom: 0;
+                    right: 0;
+                    border-left: none;
+                    border-top: none;
+                    border-bottom-right-radius: 16px;
+                }
+
+            #scan-frame .scan-line {
+                position: absolute;
+                left: 8%;
+                right: 8%;
+                height: 2px;
+                background: linear-gradient(90deg, transparent, var(--accent) 15%, var(--accent) 85%, transparent);
+                box-shadow: 0 0 10px 1px var(--accent);
+                animation: scan-sweep 2.4s ease-in-out infinite;
+            }
+
+        @keyframes scan-sweep {
+            0% {
+                top: 10%;
+                opacity: 0;
+            }
+
+            12% {
+                opacity: 1;
+            }
+
+            50% {
+                top: 90%;
+                opacity: 1;
+            }
+
+            62% {
+                opacity: 0;
+            }
+
+            100% {
+                top: 10%;
+                opacity: 0;
+            }
         }
 
         /* top bar */
@@ -154,24 +255,53 @@
                     color: var(--accent);
                 }
 
+        #status-pill {
+            display: flex;
+            align-items: center;
+            height: 26px;
+            padding: 0 10px 0 8px;
+            border-radius: 13px;
+            background: rgba(16,22,31,0.75);
+            border: 1px solid var(--accent-dim);
+        }
+
         #status-dot {
             display: inline-block;
             width: 8px;
             height: 8px;
             border-radius: 50%;
             background: var(--warn);
-            margin-right: 8px;
+            margin-right: 7px;
             box-shadow: 0 0 8px var(--warn);
+            animation: status-pulse 1.4s ease-in-out infinite;
         }
 
             #status-dot.found {
                 background: var(--accent);
                 box-shadow: 0 0 8px var(--accent);
+                animation: none;
             }
+
+        @keyframes status-pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.35;
+            }
+        }
 
         #status-text {
             color: var(--text-dim);
-            font-size: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+
+        #status-dot.found + #status-text {
+            color: var(--accent);
         }
 
         .topbar-right {
@@ -334,15 +464,31 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 55;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             background: rgba(16,22,31,0.9);
             border: 1px solid var(--accent-dim);
             color: var(--text-dim);
             font-size: 12px;
-            padding: 8px 16px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+            padding: 9px 18px;
             border-radius: 20px;
             pointer-events: none;
             transition: opacity 0.3s;
+            white-space: nowrap;
         }
+
+            #hint-banner .dot {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: var(--accent);
+                box-shadow: 0 0 6px var(--accent);
+                animation: status-pulse 1.4s ease-in-out infinite;
+                flex-shrink: 0;
+            }
 
         a-scene {
             width: 100%;
@@ -354,16 +500,24 @@
 
     <div id="loading-screen">
         <div class="spinner"></div>
-        <div>Loading AR engine…</div>
-        <div class="hint">You'll be asked for camera permission — please allow it</div>
+        <div class="title">Initializing AR Engine</div>
+        <div class="hint">Camera access will be requested — please allow it</div>
     </div>
 
     <div id="topbar">
         <div class="title">Motherboard<span>AR</span></div>
         <div class="topbar-right">
-            <span id="status-dot"></span><span id="status-text">Searching…</span>
+            <span id="status-pill"><span id="status-dot"></span><span id="status-text">Scanning</span></span>
             <button id="info-btn" onclick="toggleOverview()" aria-label="Board overview">i</button>
         </div>
+    </div>
+
+    <div id="scan-frame">
+        <span class="corner tl"></span>
+        <span class="corner tr"></span>
+        <span class="corner bl"></span>
+        <span class="corner br"></span>
+        <div class="scan-line"></div>
     </div>
 
     <div id="overview-backdrop" onclick="toggleOverview()"></div>
@@ -383,7 +537,7 @@
         <div class="spec-row"><span class="label">Rear USB Ports</span><span class="value">EDIT: e.g. 8</span></div>
     </div>
 
-    <div id="hint-banner">Fill the frame with your motherboard and hold steady</div>
+    <div id="hint-banner"><span class="dot"></span>Center the board inside the frame</div>
 
     <div id="info-panel">
         <button class="close-btn" onclick="closeInfoPanel()">✕</button>
@@ -451,7 +605,7 @@
                        color="#c084fc" wireframe="true" material="shader: flat" opacity="0.9"
                        animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
                 <a-plane position="0 0.065 0.01" width="0.16" height="0.036" color="#1f0a2b" opacity="0.85" material="shader: flat"></a-plane>
-                <a-text value="Chipset" align="center" color="#c084fc" width="0.8" position="0 0.065 0.012"></a-text>
+                <a-text value="CHIPSET" align="center" color="#c084fc" width="0.8" position="0 0.065 0.012"></a-text>
             </a-box>
 
             <!-- PCIe Slot -->
@@ -464,7 +618,7 @@
                        color="#39d6c8" wireframe="true" material="shader: flat" opacity="0.9"
                        animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
                 <a-plane position="0 0 0.01" rotation="0 0 90" width="0.16" height="0.038" color="#06231f" opacity="0.85" material="shader: flat"></a-plane>
-                <a-text value="PCIe x16" align="center" color="#39d6c8" width="0.7" rotation="0 0 90" position="0 0 0.012"></a-text>
+                <a-text value="PCIE X16" align="center" color="#39d6c8" width="0.7" rotation="0 0 90" position="0 0 0.012"></a-text>
             </a-box>
 
             <!-- PCIe x1 Slot -->
@@ -477,10 +631,10 @@
                        color="#39d6c8" wireframe="true" material="shader: flat" opacity="0.9"
                        animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
                 <a-plane position="0 0 0.01" rotation="0 0 90" width="0.15" height="0.036" color="#06231f" opacity="0.85" material="shader: flat"></a-plane>
-                <a-text value="PCIe x1" align="center" color="#39d6c8" width="0.65" rotation="0 0 90" position="0 0 0.012"></a-text>
+                <a-text value="PCIE X1" align="center" color="#39d6c8" width="0.65" rotation="0 0 90" position="0 0 0.012"></a-text>
             </a-box>
 
-            <!-- Audio -->
+            <!-- 24-Pin ATX Power -->
             <a-box class="clickable" data-name="24-Pin ATX Power"
                    data-desc="Main power connector — brings power from the PSU to the motherboard. Without this connected, the system won't boot."
                    data-specs="Connector:ATX 24-Pin|Voltage Rails:+12V / +5V / +3.3V"
@@ -489,8 +643,8 @@
                 <a-box position="0 0 0.001" width="0.037" height="0.089" depth="0.001"
                        color="#ffb454" wireframe="true" material="shader: flat" opacity="0.9"
                        animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
-                <a-plane position="0 0 0.01" rotation="0 0 90" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
-                <a-text value="Audio" align="center" color="#ffb454" width="0.65" rotation="0 0 90" position="0 0 0.012"></a-text>
+                <a-plane position="0 0 0.01" rotation="0 0 90" width="0.17" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
+                <a-text value="ATX PWR" align="center" color="#ffb454" width="0.65" rotation="0 0 90" position="0 0 0.012"></a-text>
             </a-box>
 
             <!-- CPU Power Connector -->
@@ -561,8 +715,8 @@
                 <a-box position="0 0 0.001" width="0.08" height="0.06" depth="0.001"
                        color="#ffb454" wireframe="true" material="shader: flat" opacity="0.9"
                        animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
-                <a-plane position="0 0.06 0.01" width="0.14" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
-                <a-text value="Display Port" align="center" color="#ffb454" width="0.8" position="0 0.06 0.012"></a-text>
+                <a-plane position="0 0.06 0.01" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
+                <a-text value="HDMI/DP" align="center" color="#ffb454" width="0.75" position="0 0.06 0.012"></a-text>
             </a-box>
 
             <!-- Ethernet / LAN -->
@@ -588,7 +742,7 @@
                        color="#39d6c8" wireframe="true" material="shader: flat" opacity="0.9"
                        animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
                 <a-plane position="0 0.06 0.01" width="0.16" height="0.036" color="#06231f" opacity="0.85" material="shader: flat"></a-plane>
-                <a-text value="Audio Jacks" align="center" color="#39d6c8" width="0.8" position="0 0.06 0.012"></a-text>
+                <a-text value="AUDIO" align="center" color="#39d6c8" width="0.8" position="0 0.06 0.012"></a-text>
             </a-box>
 
         </a-entity>
@@ -604,6 +758,7 @@
         const statusText = document.getElementById('status-text');
         const loadingScreen = document.getElementById('loading-screen');
         const hintBanner = document.getElementById('hint-banner');
+        const scanFrame = document.getElementById('scan-frame');
         const infoPanel = document.getElementById('info-panel');
         const panelName = document.getElementById('panel-name');
         const panelDesc = document.getElementById('panel-desc');
@@ -639,16 +794,18 @@
             el.addEventListener('targetFound', () => {
                 foundCount++;
                 statusDot.classList.add('found');
-                statusText.textContent = 'Board detected';
+                statusText.textContent = 'Tracking';
                 hintBanner.style.opacity = '0';
+                scanFrame.classList.add('hidden');
             });
 
             el.addEventListener('targetLost', () => {
                 foundCount = Math.max(0, foundCount - 1);
                 if (foundCount === 0) {
                     statusDot.classList.remove('found');
-                    statusText.textContent = 'Searching…';
+                    statusText.textContent = 'Scanning';
                     hintBanner.style.opacity = '1';
+                    scanFrame.classList.remove('hidden');
                     closeInfoPanel();
                 }
             });
