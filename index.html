@@ -66,6 +66,51 @@
                 obj.matrix.compose(obj.position, obj.quaternion, obj.scale);
             }
         });
+
+        // Draws a clean rectangular outline (top/bottom/left/right edges only)
+        // using THREE.EdgesGeometry instead of material wireframe:true.
+        // Regular wireframe:true on a box/plane renders EVERY triangle edge,
+        // and each rectangular face is internally 2 triangles — so you always
+        // get a diagonal line cutting across it. EdgesGeometry only keeps the
+        // silhouette/border edges, so the glow box shows a clean rectangle
+        // with no diagonal "cross" line, while keeping the same pulsing
+        // opacity animation as before.
+        AFRAME.registerComponent('glow-border', {
+            schema: {
+                width: { type: 'number', default: 0.1 },
+                height: { type: 'number', default: 0.1 },
+                color: { type: 'color', default: '#39d6c8' },
+                minOpacity: { type: 'number', default: 0.35 },
+                maxOpacity: { type: 'number', default: 0.9 },
+                duration: { type: 'number', default: 900 } // ms, matches old animation
+            },
+            init: function () {
+                const THREE = AFRAME.THREE;
+                const geometry = new THREE.PlaneGeometry(this.data.width, this.data.height);
+                const edges = new THREE.EdgesGeometry(geometry); // border only, no diagonal
+                this.material = new THREE.LineBasicMaterial({
+                    color: this.data.color,
+                    transparent: true,
+                    opacity: this.data.maxOpacity
+                });
+                this.line = new THREE.LineSegments(edges, this.material);
+                this.el.setObject3D('glow-border', this.line);
+                this.startTime = performance.now();
+            },
+            tick: function () {
+                // Same alternating ease-in-out pulse the old CSS-style
+                // animation gave, just driven manually here.
+                const t = (performance.now() - this.startTime) % (this.data.duration * 2);
+                const phase = t < this.data.duration
+                    ? t / this.data.duration
+                    : 1 - (t - this.data.duration) / this.data.duration;
+                const eased = 0.5 - 0.5 * Math.cos(phase * Math.PI); // easeInOutSine
+                this.material.opacity = this.data.minOpacity + eased * (this.data.maxOpacity - this.data.minOpacity);
+            },
+            remove: function () {
+                this.el.removeObject3D('glow-border');
+            }
+        });
     </script>
 
     <style>
@@ -132,101 +177,6 @@
             font-size: 13px;
             text-align: center;
             padding: 0 24px;
-        }
-
-        /* scanning viewfinder — shown while no target is tracked */
-        #scan-frame {
-            position: fixed;
-            top: 46%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: min(78vw, 360px);
-            aspect-ratio: 4 / 3;
-            z-index: 40;
-            border-radius: 20px;
-            box-shadow: 0 0 0 999px rgba(10, 14, 20, 0.55);
-            pointer-events: none;
-            overflow: hidden;
-            opacity: 1;
-            transition: opacity 0.35s ease;
-        }
-
-            #scan-frame.hidden {
-                opacity: 0;
-            }
-
-            #scan-frame .corner {
-                position: absolute;
-                width: 30px;
-                height: 30px;
-                border: 3px solid var(--accent);
-            }
-
-                #scan-frame .corner.tl {
-                    top: 0;
-                    left: 0;
-                    border-right: none;
-                    border-bottom: none;
-                    border-top-left-radius: 16px;
-                }
-
-                #scan-frame .corner.tr {
-                    top: 0;
-                    right: 0;
-                    border-left: none;
-                    border-bottom: none;
-                    border-top-right-radius: 16px;
-                }
-
-                #scan-frame .corner.bl {
-                    bottom: 0;
-                    left: 0;
-                    border-right: none;
-                    border-top: none;
-                    border-bottom-left-radius: 16px;
-                }
-
-                #scan-frame .corner.br {
-                    bottom: 0;
-                    right: 0;
-                    border-left: none;
-                    border-top: none;
-                    border-bottom-right-radius: 16px;
-                }
-
-            #scan-frame .scan-line {
-                position: absolute;
-                left: 8%;
-                right: 8%;
-                height: 2px;
-                background: linear-gradient(90deg, transparent, var(--accent) 15%, var(--accent) 85%, transparent);
-                box-shadow: 0 0 10px 1px var(--accent);
-                animation: scan-sweep 2.4s ease-in-out infinite;
-            }
-
-        @keyframes scan-sweep {
-            0% {
-                top: 10%;
-                opacity: 0;
-            }
-
-            12% {
-                opacity: 1;
-            }
-
-            50% {
-                top: 90%;
-                opacity: 1;
-            }
-
-            62% {
-                opacity: 0;
-            }
-
-            100% {
-                top: 10%;
-                opacity: 0;
-            }
         }
 
         /* top bar */
@@ -512,14 +462,6 @@
         </div>
     </div>
 
-    <div id="scan-frame">
-        <span class="corner tl"></span>
-        <span class="corner tr"></span>
-        <span class="corner bl"></span>
-        <span class="corner br"></span>
-        <div class="scan-line"></div>
-    </div>
-
     <div id="overview-backdrop" onclick="toggleOverview()"></div>
     <div id="overview-panel">
         <button class="close-btn" onclick="toggleOverview()">✕</button>
@@ -573,11 +515,9 @@
             <a-box class="clickable" data-name="Processor / CPU Socket"
                    data-desc="AMD AM5 socket. This is where the CPU gets installed. Release the ZIF lever and align the CPU's pin1 marker (gold triangle) with the socket's pin1 marker."
                    data-specs="Socket:AM5|Pin Count:1718|Supports:Ryzen 7000/8000/9000|Max TDP:170W"
-                   position="0.093 0.148 0.02" width="0.215" height="0.176" depth="0.005"
+                   position="0.138 0.111 0.02" width="0.257" height="0.227" depth="0.005"
                    color="#39d6c8" opacity="0.18" material="shader: flat">
-                <a-box position="0 0 0.001" width="0.215" height="0.176" depth="0.001"
-                       color="#39d6c8" wireframe="true" material="shader: flat" opacity="0.9"
-                       animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
+                <a-entity glow-border="width: 0.215; height: 0.176; color: #39d6c8" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0.075 0.01" width="0.13" height="0.036" color="#06231f" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="CPU" align="center" color="#39d6c8" width="0.8" position="0 0.075 0.012"></a-text>
             </a-box>
@@ -586,11 +526,9 @@
             <a-box class="clickable" data-name="RAM Slots (DIMM)"
                    data-desc="DDR5 DIMM slots, 4 units. For dual-channel, install your first RAM sticks in the A2 & B2 slots (check your motherboard manual for the exact slot order)."
                    data-specs="Type:DDR5|Slots:4|Max Capacity:192GB|Max Speed:6400MHz (OC)|Channel:Dual"
-                   position="0.090 -0.096 0.02" width="0.612" height="0.070" depth="0.005"
+                   position="0.119 -0.176 0.02" width="0.715" height="0.087" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
-                <a-box position="0 0 0.001" width="0.612" height="0.070" depth="0.001"
-                       color="#ffb454" wireframe="true" material="shader: flat" opacity="0.9"
-                       animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
+                <a-entity glow-border="width: 0.612; height: 0.070; color: #ffb454" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0.095 0.01" width="0.13" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="RAM" align="center" color="#ffb454" width="0.8" position="0 0.095 0.012"></a-text>
             </a-box>
@@ -599,11 +537,9 @@
             <a-box class="clickable" data-name="Chipset"
                    data-desc="Motherboard chipset — the traffic controller for CPU, RAM, storage, USB, and PCIe lanes. It runs hot enough to need its own heatsink."
                    data-specs="Chipset:B650 (EDIT to your board)|PCIe Lanes:Up to 24|USB Ports:Up to 12|SATA Ports:4"
-                   position="-0.237 0.026 0.02" width="0.096" height="0.097" depth="0.005"
+                   position="-0.263 -0.026 0.02" width="0.104" height="0.106" depth="0.005"
                    color="#c084fc" opacity="0.18" material="shader: flat">
-                <a-box position="0 0 0.001" width="0.096" height="0.097" depth="0.001"
-                       color="#c084fc" wireframe="true" material="shader: flat" opacity="0.9"
-                       animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
+                <a-entity glow-border="width: 0.096; height: 0.097; color: #c084fc" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0.065 0.01" width="0.16" height="0.036" color="#1f0a2b" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="CHIPSET" align="center" color="#c084fc" width="0.8" position="0 0.065 0.012"></a-text>
             </a-box>
@@ -612,11 +548,9 @@
             <a-box class="clickable" data-name="PCIe x16 Slot"
                    data-desc="The main slot for your graphics card (GPU). Look for PCIe Gen4/Gen5 support depending on your board. Has a latch/lever that clicks to secure the GPU in place."
                    data-specs="Version:PCIe 5.0|Lane Width:x16|Slots Available:1"
-                   position="-0.354 0.178 0.02" width="0.048" height="0.368" depth="0.005"
+                   position="-0.409 0.165 0.02" width="0.055" height="0.463" depth="0.005"
                    color="#39d6c8" opacity="0.18" material="shader: flat">
-                <a-box position="0 0 0.001" width="0.048" height="0.368" depth="0.001"
-                       color="#39d6c8" wireframe="true" material="shader: flat" opacity="0.9"
-                       animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
+                <a-entity glow-border="width: 0.048; height: 0.368; color: #39d6c8" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0 0.01" rotation="0 0 90" width="0.16" height="0.038" color="#06231f" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="PCIE X16" align="center" color="#39d6c8" width="0.7" rotation="0 0 90" position="0 0 0.012"></a-text>
             </a-box>
@@ -625,24 +559,20 @@
             <a-box class="clickable" data-name="PCIe x1 Slot"
                    data-desc="A smaller PCIe slot — used for smaller expansion cards like sound cards, WiFi cards, or capture cards."
                    data-specs="Version:PCIe 3.0|Lane Width:x1|Use:WiFi/Sound/Capture cards"
-                   position="-0.265 0.279 0.02" width="0.041" height="0.167" depth="0.005"
+                   position="-0.306 0.290 0.02" width="0.051" height="0.211" depth="0.005"
                    color="#39d6c8" opacity="0.18" material="shader: flat">
-                <a-box position="0 0 0.001" width="0.041" height="0.167" depth="0.001"
-                       color="#39d6c8" wireframe="true" material="shader: flat" opacity="0.9"
-                       animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
+                <a-entity glow-border="width: 0.041; height: 0.167; color: #39d6c8" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0 0.01" rotation="0 0 90" width="0.15" height="0.036" color="#06231f" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="PCIE X1" align="center" color="#39d6c8" width="0.65" rotation="0 0 90" position="0 0 0.012"></a-text>
             </a-box>
 
-            <!-- 24-Pin ATX Power -->
-            <a-box class="clickable" data-name="24-Pin ATX Power"
+            <!-- Audio -->
+            <a-box class="clickable" data-name="ATX Power"
                    data-desc="Main power connector — brings power from the PSU to the motherboard. Without this connected, the system won't boot."
                    data-specs="Connector:ATX 24-Pin|Voltage Rails:+12V / +5V / +3.3V"
-                   position="-0.393 0.418 0.02" width="0.037" height="0.089" depth="0.005"
+                   position="-0.474 0.487 0.02" width="0.045" height="0.154" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
-                <a-box position="0 0 0.001" width="0.037" height="0.089" depth="0.001"
-                       color="#ffb454" wireframe="true" material="shader: flat" opacity="0.9"
-                       animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
+                <a-entity glow-border="width: 0.037; height: 0.089; color: #ffb454" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0 0.01" rotation="0 0 90" width="0.17" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="ATX PWR" align="center" color="#ffb454" width="0.65" rotation="0 0 90" position="0 0 0.012"></a-text>
             </a-box>
@@ -651,11 +581,9 @@
             <a-box class="clickable" data-name="CPU Power Connector"
                    data-desc="4+4 pin (or 8-pin) EPS connector — supplies dedicated power to the CPU, separate from the main 24-pin connector."
                    data-specs="Connector:4+4 Pin EPS|Voltage:+12V|Function:Dedicated CPU power"
-                   position="-0.035 -0.435 0.02" width="0.091" height="0.059" depth="0.005"
+                   position="-0.020 -0.521 0.02" width="0.095" height="0.080" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
-                <a-box position="0 0 0.001" width="0.091" height="0.059" depth="0.001"
-                       color="#ffb454" wireframe="true" material="shader: flat" opacity="0.9"
-                       animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
+                <a-entity glow-border="width: 0.091; height: 0.059; color: #ffb454" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0.055 0.01" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="CPU PWR" align="center" color="#ffb454" width="0.7" position="0 0.055 0.012"></a-text>
             </a-box>
@@ -664,11 +592,9 @@
             <a-box class="clickable" data-name="SATA Ports"
                    data-desc="Used to connect hard disks, SSDs, or DVD drives. L-shaped connectors, usually found along the board's edge."
                    data-specs="Version:SATA III|Speed:6Gbps|Ports:4-6 (EDIT to your board)|Use:HDD/SSD/Optical drives"
-                   position="-0.439 -0.326 0.02" width="0.049" height="0.259" depth="0.005"
+                   position="-0.471 -0.406 0.02" width="0.054" height="0.282" depth="0.005"
                    color="#c084fc" opacity="0.18" material="shader: flat">
-                <a-box position="0 0 0.001" width="0.049" height="0.259" depth="0.001"
-                       color="#c084fc" wireframe="true" material="shader: flat" opacity="0.9"
-                       animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
+                <a-entity glow-border="width: 0.049; height: 0.259; color: #c084fc" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0 0.01" rotation="0 0 90" width="0.14" height="0.036" color="#1f0a2b" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="SATA" align="center" color="#c084fc" width="0.7" rotation="0 0 90" position="0 0 0.012"></a-text>
             </a-box>
@@ -677,11 +603,9 @@
             <a-box class="clickable" data-name="CMOS Battery"
                    data-desc="CR2032 coin cell. Keeps BIOS settings and the system clock powered while the PC is off. If it drains, your BIOS settings will reset."
                    data-specs="Type:CR2032|Voltage:3V|Function:BIOS/RTC backup"
-                   position="0.257 -0.414 0.02" width="0.104" height="0.097" depth="0.005"
+                   position="0.279 -0.502 0.02" width="0.099" height="0.102" depth="0.005"
                    color="#c084fc" opacity="0.18" material="shader: flat">
-                <a-box position="0 0 0.001" width="0.104" height="0.097" depth="0.001"
-                       color="#c084fc" wireframe="true" material="shader: flat" opacity="0.9"
-                       animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
+                <a-entity glow-border="width: 0.104; height: 0.097; color: #c084fc" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0.065 0.01" width="0.14" height="0.036" color="#1f0a2b" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="CMOS" align="center" color="#c084fc" width="0.7" position="0 0.065 0.012"></a-text>
             </a-box>
@@ -699,9 +623,7 @@
                    data-specs="Version:USB 3.2 Gen1|Speed:5Gbps|Count:EDIT to your board"
                    position="0.059 0.004 0.02" width="0.084" height="0.175" depth="0.005"
                    color="#39d6c8" opacity="0.18" material="shader: flat">
-                <a-box position="0 0 0.001" width="0.18" height="0.09" depth="0.001"
-                       color="#39d6c8" wireframe="true" material="shader: flat" opacity="0.9"
-                       animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
+                <a-entity glow-border="width: 0.18; height: 0.09; color: #39d6c8" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0.075 0.01" width="0.13" height="0.036" color="#06231f" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="USB" align="center" color="#39d6c8" width="0.8" position="0 0.075 0.012"></a-text>
             </a-box>
@@ -712,9 +634,7 @@
                    data-specs="Type:HDMI 1.4/2.0 (EDIT)|Max Resolution:4K@30Hz or 60Hz|Use:iGPU display out"
                    position="-0.284 -0.068 0.02" width="0.191" height="0.043" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
-                <a-box position="0 0 0.001" width="0.08" height="0.06" depth="0.001"
-                       color="#ffb454" wireframe="true" material="shader: flat" opacity="0.9"
-                       animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
+                <a-entity glow-border="width: 0.08; height: 0.06; color: #ffb454" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0.06 0.01" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="HDMI/DP" align="center" color="#ffb454" width="0.75" position="0 0.06 0.012"></a-text>
             </a-box>
@@ -725,9 +645,7 @@
                    data-specs="Speed:1Gbps (Gigabit LAN)|Connector:RJ45|Use:Wired internet/network"
                    position="0.159 0.044 0.02" width="0.100" height="0.074" depth="0.005"
                    color="#c084fc" opacity="0.18" material="shader: flat">
-                <a-box position="0 0 0.001" width="0.06" height="0.05" depth="0.001"
-                       color="#c084fc" wireframe="true" material="shader: flat" opacity="0.9"
-                       animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
+                <a-entity glow-border="width: 0.06; height: 0.05; color: #c084fc" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0.055 0.01" width="0.13" height="0.036" color="#1f0a2b" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="LAN" align="center" color="#c084fc" width="0.8" position="0 0.055 0.012"></a-text>
             </a-box>
@@ -738,9 +656,7 @@
                    data-specs="Type:3.5mm Analog Jacks|Count:3-6 (EDIT to your board)|Color Code:Green/Pink/Blue"
                    position="0.259 -0.015 0.02" width="0.074" height="0.141" depth="0.005"
                    color="#39d6c8" opacity="0.18" material="shader: flat">
-                <a-box position="0 0 0.001" width="0.16" height="0.06" depth="0.001"
-                       color="#39d6c8" wireframe="true" material="shader: flat" opacity="0.9"
-                       animation="property: opacity; dir: alternate; dur: 900; easing: easeInOutSine; loop: true; to: 0.35"></a-box>
+                <a-entity glow-border="width: 0.16; height: 0.06; color: #39d6c8" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0.06 0.01" width="0.16" height="0.036" color="#06231f" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="AUDIO" align="center" color="#39d6c8" width="0.8" position="0 0.06 0.012"></a-text>
             </a-box>
@@ -758,7 +674,6 @@
         const statusText = document.getElementById('status-text');
         const loadingScreen = document.getElementById('loading-screen');
         const hintBanner = document.getElementById('hint-banner');
-        const scanFrame = document.getElementById('scan-frame');
         const infoPanel = document.getElementById('info-panel');
         const panelName = document.getElementById('panel-name');
         const panelDesc = document.getElementById('panel-desc');
@@ -796,7 +711,6 @@
                 statusDot.classList.add('found');
                 statusText.textContent = 'Tracking';
                 hintBanner.style.opacity = '0';
-                scanFrame.classList.add('hidden');
             });
 
             el.addEventListener('targetLost', () => {
@@ -805,7 +719,6 @@
                     statusDot.classList.remove('found');
                     statusText.textContent = 'Scanning';
                     hintBanner.style.opacity = '1';
-                    scanFrame.classList.remove('hidden');
                     closeInfoPanel();
                 }
             });
