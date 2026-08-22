@@ -475,7 +475,7 @@
         <div class="spec-row"><span class="label">Main Power</span><span class="value">24-Pin</span></div>
         <div class="spec-row"><span class="label">Memory clock speedr</span><span class="value">2133 MHz</span></div>
         <div class="spec-row"><span class="label">PCIe Version</span><span class="value">PCI-Express x16</span></div>
-   
+
     </div>
 
     <div id="hint-banner"><span class="dot"></span>Center the board inside the frame</div>
@@ -499,17 +499,17 @@
         <a-entity id="target-0" mindar-image-target="targetIndex: 0" smooth-tracking>
 
             <!--
-      COORDINATE SYSTEM:
-      Target plane center = (0,0,0). Plane width = 1 unit.
-      Plane height = (image height / image width) units.
-      x: left(-) to right(+) across the board
-      y: bottom(-) to top(+) across the board
-      z: small positive value lifts the box off the board surface (toward camera)
+              COORDINATE SYSTEM:
+              Target plane center = (0,0,0). Plane width = 1 unit.
+              Plane height = (image height / image width) units.
+              x: left(-) to right(+) across the board
+              y: bottom(-) to top(+) across the board
+              z: small positive value lifts the box off the board surface (toward camera)
 
-      These default numbers are all PLACEHOLDERS. Test against your
-      own board photo and adjust each box's position="x y z" value
-      (see README.md for the calibration/iteration process).
-    -->
+              These default numbers are all PLACEHOLDERS. Test against your
+              own board photo and adjust each box's position="x y z" value
+              (see README.md for the calibration/iteration process).
+            -->
             <!-- Processor / CPU Socket -->
             <a-box class="clickable" data-name="Processor / CPU Socket"
                    data-desc="Intel H87 and LGA1150 Support: Designed for use with Intel processors that support the LGA1150 socket, leveraging the technology and capabilities of the Intel H87 chipset."
@@ -611,69 +611,69 @@
             </a-box>
 
             <!-- Audio Jack -->
-            <a-box class="clickable" data-name="Audio Jack" 
+            <a-box class="clickable" data-name="Audio Jack (Rear I/O)"
                    data-desc="3.5mm audio ports — for connecting speakers, headphones, or a microphone. Usually 3 or 6 color-coded jacks (green=speaker, pink=mic, blue=line-in)."
-                  
-                   position="-0.236 0.614 0.02" width="0.071" height="0.082" depth="0.005"
+                   data-specs="Type:3.5mm Analog|Location:Rear I/O panel"
+                   position="-0.280 0.080 0.02" width="0.071" height="0.082" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
                 <a-entity glow-border="width: 0.091; height: 0.059; color: #ffb454" position="0 0 0.001"></a-entity>
-                <a-plane position="0 0.055 0.01" rotation="0 0 90" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
-                <a-text value="AUDIO JACK" align="center" color="#ffb454" width="1" rotation="0 0 -90" position="0 0.055 0.012"></a-text>
+                <a-plane position="0 0.055 0.01" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
+                <a-text value="AUDIO JACK" align="center" color="#ffb454" width="1" position="0 0.055 0.012"></a-text>
             </a-box>
 
             <!-- LAN -->
-            <a-box class="clickable" data-name="CPU Power Connector"
+            <a-box class="clickable" data-name="LAN / Ethernet (Rear I/O)"
                    data-desc="Provides wired Ethernet networking."
                    data-specs="RJ-45 Gigabit Ethernet is typical; exact controller determines speed"
-                   position="-0.137 0.593 0.02" width="0.098" height="0.125" depth="0.005"
+                   position="-0.310 0.160 0.02" width="0.098" height="0.125" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
                 <a-entity glow-border="width: 0.091; height: 0.059; color: #ffb454" position="0 0 0.001"></a-entity>
-                <a-plane position="0 0.055 0.01" rotation="0 0 90" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
-                <a-text value="LAN" align="center" color="#ffb454" width="1" rotation="0 0 -90" position="0 0.055 0.012"></a-text>
+                <a-plane position="0 0.055 0.01" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
+                <a-text value="LAN" align="center" color="#ffb454" width="1" position="0 0.055 0.012"></a-text>
             </a-box>
 
             <!-- USB -->
-            <a-box class="clickable" data-name="CPU Power Connector"
+            <a-box class="clickable" data-name="USB Ports (Rear I/O)"
                    data-desc="Connects internal USB devices/front-panel USB ports."
                    data-specs="Internal USB 2.0 header; 480 Mb/s theoretical"
-                   position="-0.033 0.596 0.02" width="0.073" height="0.122" depth="0.005"
+                   position="-0.340 0.240 0.02" width="0.073" height="0.122" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
                 <a-entity glow-border="width: 0.091; height: 0.059; color: #ffb454" position="0 0 0.001"></a-entity>
-                <a-plane position="0 0.055 0.01" rotation="0 0 90" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
-                <a-text value="USB" align="center" color="#ffb454" width="1" rotation="0 0 -90" position="0 0.055 0.012"></a-text>
+                <a-plane position="0 0.055 0.01" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
+                <a-text value="USB" align="center" color="#ffb454" width="1" position="0 0.055 0.012"></a-text>
             </a-box>
 
             <!-- VGA -->
-            <a-box class="clickable" data-name="CPU Power Connector"
+            <a-box class="clickable" data-name="VGA (Rear I/O)"
                    data-desc="Sends analog video signal to a display."
-                   data-specs="C15-pin D-Sub VGA; analog video"
-                   position="0.109 0.572 0.02" width="0.127" height="0.169" depth="0.005"
+                   data-specs="15-pin D-Sub VGA; analog video"
+                   position="-0.370 0.320 0.02" width="0.127" height="0.169" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
                 <a-entity glow-border="width: 0.091; height: 0.059; color: #ffb454" position="0 0 0.001"></a-entity>
-                <a-plane position="0 0.055 0.01" rotation="0 0 90" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
-                <a-text value="VGA" align="center" color="#ffb454" width="1" rotation="0 0 -90" position="0 0.055 0.012"></a-text>
+                <a-plane position="0 0.055 0.01" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
+                <a-text value="VGA" align="center" color="#ffb454" width="1" position="0 0.055 0.012"></a-text>
             </a-box>
 
             <!-- Display port -->
-            <a-box class="clickable" data-name="CPU Power Connector"
+            <a-box class="clickable" data-name="DisplayPort (Rear I/O)"
                    data-desc="Sends digital video and audio to compatible displays."
                    data-specs="DisplayPort; exact version depends on motherboard"
-                   position="0.296 0.564 0.02" width="0.197" height="0.070" depth="0.005"
+                   position="-0.400 0.400 0.02" width="0.197" height="0.070" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
                 <a-entity glow-border="width: 0.091; height: 0.059; color: #ffb454" position="0 0 0.001"></a-entity>
-                <a-plane position="0 0.055 0.01" rotation="0 0 90" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
-                <a-text value="DISPLAY PORT" align="center" color="#ffb454" width="1" rotation="0 0 -90" position="0 0.055 0.012"></a-text>
+                <a-plane position="0 0.055 0.01" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
+                <a-text value="DISPLAY PORT" align="center" color="#ffb454" width="1" position="0 0.055 0.012"></a-text>
             </a-box>
 
             <!-- PS/2 -->
-            <a-box class="clickable" data-name="CPU Power Connector"
+            <a-box class="clickable" data-name="PS/2 (Rear I/O)"
                    data-desc="Legacy ports for keyboard and mouse."
                    data-specs="6-pin Mini-DIN, normally color-coded green/purple"
-                   position="0.447 0.550 0.02" width="0.090" height="0.107" depth="0.005"
+                   position="-0.430 0.480 0.02" width="0.090" height="0.107" depth="0.005"
                    color="#ffb454" opacity="0.18" material="shader: flat">
                 <a-entity glow-border="width: 0.091; height: 0.059; color: #ffb454" position="0 0 0.001"></a-entity>
-                <a-plane position="0 0.055 0.01" rotation="0 0 90" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
-                <a-text value="PS/2" align="center" color="#ffb454" width="1" rotation="0 0 -90" position="0 0.055 0.012"></a-text>
+                <a-plane position="0 0.055 0.01" width="0.16" height="0.036" color="#2b2005" opacity="0.85" material="shader: flat"></a-plane>
+                <a-text value="PS/2" align="center" color="#ffb454" width="1" position="0 0.055 0.012"></a-text>
             </a-box>
 
 
