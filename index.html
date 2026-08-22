@@ -643,7 +643,7 @@
             </a-box>
 
             <!-- VGA -->
-            <a-box class="clickable" data-name="CPU Power Connector"
+            <a-box class="clickable" data-name="VGA"
                    data-desc="Sends analog video signal to a display."
                    data-specs="C15-pin D-Sub VGA; analog video"
                    position="0.109 0.572 0.02" width="0.127" height="0.169" depth="0.005"
@@ -723,12 +723,32 @@
                    data-specs="Type:3.5mm Analog Jacks|Count:3-6 (EDIT to your board)|Color Code:Green/Pink/Blue"
                    position="0.259 -0.015 0.02" width="0.074" height="0.141" depth="0.005"
                    color="#39d6c8" opacity="0.40" material="shader: flat">
-                <a-entity glow-border="width: 0.74; height: 0.141; color: #39d6c8" position="0 0 0.001"></a-entity>
+                <a-entity glow-border="width: 0.074; height: 0.141; color: #39d6c8" position="0 0 0.001"></a-entity>
                 <a-plane position="0 0.06 0.01" width="0.16" height="0.036" color="#06231f" opacity="0.85" material="shader: flat"></a-plane>
                 <a-text value="AUDIO" align="center" color="#39d6c8" width="0.6" position="0 0.06 0.012"></a-text>
-            </a-box>
 
-        </a-entity>
+                <!-- VGA -->
+                <a-box class="clickable" data-name="VGA"
+                       data-desc="Sends analog video signal to a display."
+                       data-specs="Type:3.5mm Analog Jacks|Count:3-6 (EDIT to your board)|Color Code:Green/Pink/Blue"
+                      position="-0.083 -0.052 0.02" width="0.153" height="0.064" depth="0.005"
+                       color="#39d6c8" opacity="0.40" material="shader: flat">
+                    <a-entity glow-border="width: 0.153; height: 0.064; color: #39d6c8" position="0 0 0.001"></a-entity>
+                    <a-plane position="0 0.06 0.01" width="0.16" height="0.036" color="#06231f" opacity="0.85" material="shader: flat"></a-plane>
+                    <a-text value="VGA" align="center" color="#39d6c8" width="0.6" position="0 0.06 0.012"></a-text>
+                </a-box>
+
+                <!-- PS/2 -->
+                <a-box class="clickable" data-name="PS/2"
+                       data-desc="Legacy ports for keyboard and mouse."
+                       data-specs="Type:3.5mm Analog Jacks|Count:3-6 (EDIT to your board)|Color Code:Green/Pink/Blue"
+                       position="-0.431 -0.015 0.02" width="0.071" height="0.143" depth="0.005"
+                       color="#39d6c8" opacity="0.40" material="shader: flat">
+                    <a-entity glow-border="width: 0.071; height: 0.143; color: #39d6c8" position="0 0 0.001"></a-entity>
+                    <a-plane position="0 0.06 0.01" width="0.16" height="0.036" color="#06231f" opacity="0.85" material="shader: flat"></a-plane>
+                    <a-text value="PS/2" align="center" color="#39d6c8" width="0.6" position="0 0.06 0.012"></a-text>
+
+</a-entity>
     </a-scene>
 
     <script>
